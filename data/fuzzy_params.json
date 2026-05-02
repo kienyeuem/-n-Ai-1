@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "updated_at": null,
+  "vehicle_pricing": {
+    "bike": {"name": "Xe máy",     "open": 12000, "per_km": 4500,  "icon": "🛵"},
+    "4s":   {"name": "Ô tô 4 chỗ", "open": 25000, "per_km": 11000, "icon": "🚗"},
+    "7s":   {"name": "Ô tô 7 chỗ", "open": 32000, "per_km": 14000, "icon": "🚙"}
+  },
+  "output_caps": {
+    "base_multiplier":    {"min": 0.8, "max": 2.5},
+    "environment_factor": {"min": 1.0, "max": 1.5},
+    "surge_factor":       {"min": 1.0, "max": 2.0}
+  },
+  "manual_factor": 1.0,
+  "note": "Admin có thể chỉnh open_fee, per_km, manual_factor (nhân thêm vào total_multiplier sau cùng) qua trang /admin → tab Fuzzy params."
+}

@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FuzzyRide — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div class="dash-wrap">
+
+  <aside class="side">
+    <div class="logo"><span {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent;background-size:cover"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</span> {{ branding.site_name or 'FuzzyRide' }}</div>
+    <button class="nav-i on" data-tab="stats"><span class="i"></span> Tổng quan</button>
+    <button class="nav-i" data-tab="users"><span class="i"></span> Người dùng</button>
+    <button class="nav-i" data-tab="bookings"><span class="i"></span> Chuyến đi</button>
+    <button class="nav-i" data-tab="branding"><span class="i"></span> Branding</button>
+    <button class="nav-i" data-tab="params"><span class="i"></span> Tham số Fuzzy</button>
+    <a class="nav-i" href="/app"><span class="i"></span> Mở app</a>
+    <a class="nav-i" href="/"><span class="i"></span> Calculator</a>
+    <div class="footer-side">
+      <b>{{ current_user.fullname or current_user.username }}</b>
+      Admin · <a href="/api/auth/logout" onclick="event.preventDefault();fetch('/api/auth/logout',{method:'POST'}).then(()=>location.href='/login')">Đăng xuất</a>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ===== TAB: STATS ===== -->
+    <section id="tab-stats" class="tab-pane">
+      <h1>Tổng quan</h1>
+      <p class="sub">Số liệu cập nhật theo dữ liệu thực tế trong <code>bookings.json</code> & <code>users.json</code>.</p>
+
+      <div class="kpis">
+        <div class="kpi k1"><small>Tổng chuyến</small><b id="kpi-bookings">—</b></div>
+        <div class="kpi k2"><small>Người dùng</small><b id="kpi-users">—</b></div>
+        <div class="kpi k3"><small>Doanh thu</small><b id="kpi-revenue">—</b></div>
+        <div class="kpi k4"><small>Surge TB</small><b id="kpi-surge">—</b></div>
+      </div>
+
+      <div class="panel">
+        <h3>Số chuyến 7 ngày gần nhất</h3>
+        <div class="chart-box">
+          <div class="bars" id="chart-bars"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Phân bổ theo loại xe & trạng thái</h3>
+        <div class="row-flex">
+          <div class="donut" id="donut"></div>
+          <div class="donut-info">
+            <ul class="legend" id="legend-vehicle"></ul>
+          </div>
+          <div class="donut-info" style="border-left:1px solid var(--line);padding-left:24px">
+            <h4 style="font-size:13px;margin:0 0 10px">Trạng thái</h4>
+            <ul class="legend" id="legend-status"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: USERS ===== -->
+    <section id="tab-users" class="tab-pane" style="display:none">
+      <h1>Người dùng</h1>
+      <p class="sub">Quản lý tài khoản — khoá / mở khoá / xoá. Không thể tự thao tác lên chính mình.</p>
+      <div class="toolbar">
+        <input id="u-q" placeholder="Tìm theo username, email, họ tên…" />
+        <button class="btn-x" onclick="loadUsers()">↻ Làm mới</button>
+      </div>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="adm">
+          <thead><tr><th>Avatar</th><th>Username</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Trạng thái</th><th>Tạo lúc</th><th></th></tr></thead>
+          <tbody id="u-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== TAB: BOOKINGS ===== -->
+    <section id="tab-bookings" class="tab-pane" style="display:none">
+      <h1>Chuyến đi</h1>
+      <p class="sub">Toàn bộ booking từ mọi user. Có thể huỷ, lọc theo trạng thái / loại xe.</p>
+      <div class="toolbar">
+        <select id="b-status">
+          <option value="">— Tất cả trạng thái —</option>
+          <option value="searching">Đang tìm tài xế</option>
+          <option value="driver_assigned">Đã có tài xế</option>
+          <option value="in_trip">Đang di chuyển</option>
+          <option value="completed">Hoàn tất</option>
+          <option value="cancelled">Đã huỷ</option>
+        </select>
+        <select id="b-vehicle">
+          <option value="">— Tất cả phương tiện —</option>
+          <option value="bike"> Xe máy</option>
+          <option value="4s"> Ô tô 4</option>
+          <option value="7s"> Ô tô 7</option>
+        </select>
+        <button class="btn-x" onclick="loadBookings()">↻ Làm mới</button>
+      </div>
+      <div class="panel" style="padding:0;overflow:hidden">
+        <table class="adm">
+          <thead><tr><th>ID</th><th>User</th><th>Tuyến</th><th>Xe</th><th>Tài xế</th><th>Cước</th><th>Surge</th><th>Trạng thái</th><th>Tạo lúc</th><th></th></tr></thead>
+          <tbody id="b-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== TAB: BRANDING ===== -->
+    <section id="tab-branding" class="tab-pane" style="display:none">
+      <h1>Branding</h1>
+      <p class="sub">Cập nhật logo và banner trang chủ. Banner tự động crop về tỉ lệ 16:9, kích thước 1600×900.</p>
+
+      <div class="panel">
+        <h3>Logo trang web</h3>
+        <p class="sub" style="margin-bottom:14px">Logo hiện ở header tất cả trang. Resize tối đa cao 256px, chiều ngang giữ nguyên tỉ lệ. PNG/JPG/WEBP.</p>
+        <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+          <div id="logo-preview" style="width:120px;height:120px;background:#F2F4F7;border:1px solid var(--line);display:grid;place-items:center;font-family:'Space Grotesk';font-size:50px;color:var(--primary);font-weight:800;background-size:contain;background-position:center;background-repeat:no-repeat">F</div>
+          <div style="flex:1;min-width:240px">
+            <input type="file" id="logo-file" accept="image/*" hidden>
+            <button class="btn-x" style="border-color:var(--primary);color:var(--primary-700)" onclick="document.getElementById('logo-file').click()">📤 Tải logo lên</button>
+            <button class="btn-x danger" id="logo-del" onclick="deleteLogo()" style="display:none">Xoá logo</button>
+            <p class="sub" style="margin-top:10px;font-size:12px">Tỉ lệ tự do, file ≤ 5MB.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Thông tin website</h3>
+        <div class="slider-row">
+          <label>Tên website</label>
+          <input type="text" id="bd-name" style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--line);padding:8px 12px;color:var(--text);font-size:13px;outline:0">
+        </div>
+        <div class="slider-row">
+          <label>Tagline</label>
+          <input type="text" id="bd-tagline" style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--line);padding:8px 12px;color:var(--text);font-size:13px;outline:0">
+        </div>
+        <button class="btn-x" style="border-color:var(--primary);color:var(--primary-700)" onclick="saveBrandingInfo()">Lưu</button>
+      </div>
+
+      <div class="panel">
+        <h3>Banner trang chủ <span style="color:var(--muted);font-weight:400;font-size:13px">(carousel 16:9)</span></h3>
+        <p class="sub" style="margin-bottom:14px">Hiển thị ở đầu trang chủ, tự động chuyển sau 5s. Kéo nhiều banner để có carousel.</p>
+
+        <div style="margin-bottom:18px">
+          <input type="file" id="banner-file" accept="image/*" hidden>
+          <input type="text" id="banner-link" placeholder="URL khi click banner (tuỳ chọn)" style="background:rgba(255,255,255,.04);border:1px solid var(--line);padding:9px 12px;color:var(--text);font-size:13px;outline:0;margin-right:8px;width:280px">
+          <input type="text" id="banner-alt" placeholder="Alt text (mô tả ngắn)" style="background:rgba(255,255,255,.04);border:1px solid var(--line);padding:9px 12px;color:var(--text);font-size:13px;outline:0;margin-right:8px;width:240px">
+          <button class="btn-x" style="border-color:var(--primary);color:var(--primary-700)" onclick="document.getElementById('banner-file').click()">📤 Tải banner lên</button>
+        </div>
+
+        <div id="banner-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: FUZZY PARAMS ===== -->
+    <section id="tab-params" class="tab-pane" style="display:none">
+      <h1>Tham số Fuzzy</h1>
+      <p class="sub">Chỉnh giá mở cửa, đơn giá/km cho từng loại xe và <b>manual_factor</b> nhân thêm vào <code>total_multiplier</code> sau cùng. Thay đổi áp dụng <b>ngay lập tức</b> — lần tính cước kế tiếp đã dùng giá trị mới.</p>
+
+      <div class="params-grid" id="vehicle-params"></div>
+
+      <div class="panel">
+        <h3>Manual factor (nhân thêm vào total_multiplier)</h3>
+        <p class="sub" style="margin:0 0 14px">Khoảng hợp lệ: 0.5 – 3.0. Để = 1.0 để giữ nguyên hệ mờ.</p>
+        <div class="slider-row">
+          <label>manual_factor</label>
+          <input type="range" id="manual" min="0.5" max="3.0" step="0.05" value="1.0" />
+          <b id="manual-v">×1.00</b>
+        </div>
+        <button class="btn-x" style="border-color:var(--primary);color:#a78bfa" onclick="saveParams()">💾 Lưu thay đổi</button>
+        <button class="btn-x" onclick="loadParams()">↻ Reset về file</button>
+      </div>
+
+      <div class="panel">
+        <h3>Thông tin hệ Fuzzy hiện tại</h3>
+        <div id="rules-info" class="sub">Đang tải…</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const tt=document.getElementById('toast');
+function toast(m,kind){tt.textContent=m;tt.className='toast '+(kind||'ok');tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2200);}
+function fmt(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
+function $(id){return document.getElementById(id);}
+
+// Tab switching
+document.querySelectorAll('.nav-i[data-tab]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-i[data-tab]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
+    $('tab-'+b.dataset.tab).style.display='block';
+    if(b.dataset.tab==='stats')    loadStats();
+    if(b.dataset.tab==='users')    loadUsers();
+    if(b.dataset.tab==='bookings') loadBookings();
+    if(b.dataset.tab==='branding') loadBranding();
+    if(b.dataset.tab==='params')   {loadParams();loadRulesInfo();}
+  });
+});
+
+// ===== STATS =====
+async function loadStats(){
+  const s = await fetch('/api/admin/stats').then(r=>r.json());
+  $('kpi-bookings').textContent = s.total_bookings;
+  $('kpi-users').textContent    = s.total_users;
+  $('kpi-revenue').textContent  = fmt(s.total_revenue);
+  $('kpi-surge').textContent    = '×'+s.avg_surge;
+
+  // Bars chart
+  const max = Math.max(1, ...s.daily_chart.map(d=>d.count));
+  $('chart-bars').innerHTML = (s.daily_chart.length ? s.daily_chart : [{date:'-',count:0}]).map(d=>{
+    const h = (d.count/max)*100;
+    return `<div class="bar" style="height:${h}%" data-v="${d.count} chuyến"><small>${d.date.slice(5)}</small></div>`;
+  }).join('');
+
+  // Donut + legend
+  const colors = ['#7c5cff','#22d3ee','#f472b6','#34d399','#fbbf24','#f87171'];
+  const v = s.by_vehicle, total = Object.values(v).reduce((a,b)=>a+b,0)||1;
+  let cur=0, segs=[];
+  Object.entries(v).forEach(([k,n],i)=>{
+    const pct = (n/total)*100, end = cur+pct;
+    segs.push(`${colors[i%colors.length]} ${cur}% ${end}%`); cur=end;
+  });
+  if(cur<100) segs.push(`var(--line) ${cur}% 100%`);
+  $('donut').style.background = 'conic-gradient(' + segs.join(',') + ')';
+  $('legend-vehicle').innerHTML = Object.entries(v).map(([k,n],i)=>
+    `<li><span class="sw" style="background:${colors[i%colors.length]}"></span>${k} <b>${n}</b></li>`
+  ).join('') || '<li class="empty">Chưa có dữ liệu</li>';
+
+  // Status legend
+  const statusColors = {searching:'#7c5cff',driver_assigned:'#22d3ee',in_trip:'#fbbf24',completed:'#34d399',confirmed:'#34d399',cancelled:'#f87171'};
+  const statusLabels = {searching:'Đang tìm',driver_assigned:'Đã nhận',in_trip:'Đang đi',completed:'Hoàn tất',confirmed:'Hoàn tất',cancelled:'Đã huỷ'};
+  $('legend-status').innerHTML = Object.entries(s.by_status||{}).map(([k,n])=>
+    `<li><span class="sw" style="background:${statusColors[k]||'#888'}"></span>${statusLabels[k]||k} <b>${n}</b></li>`
+  ).join('') || '<li class="empty">Chưa có dữ liệu</li>';
+}
+
+// ===== USERS =====
+async function loadUsers(){
+  const q = $('u-q').value.trim();
+  const us = await fetch('/api/admin/users?q='+encodeURIComponent(q)).then(r=>r.json());
+  $('u-tbody').innerHTML = us.map(u=>`
+    <tr>
+      <td><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#f472b6);display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px">${u.avatar}</div></td>
+      <td><b>${u.username}</b></td>
+      <td>${u.fullname||'-'}</td>
+      <td>${u.email||'-'}</td>
+      <td>${u.phone||'-'}</td>
+      <td><span class="tag ${u.role}">${u.role==='admin'?'👑 Admin':'User'}</span></td>
+      <td>${u.locked?'<span class="tag locked">🔒 Khoá</span>':'<span class="tag user">Hoạt động</span>'}</td>
+      <td>${(u.created_at||'').slice(0,16).replace('T',' ')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-x warn" onclick="lockUser('${u.id}', ${!u.locked})">${u.locked?'Mở':'Khoá'}</button>
+        <button class="btn-x danger" onclick="delUser('${u.id}','${u.username}')">Xoá</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="9" class="empty">Chưa có user nào</td></tr>';
+}
+$('u-q').addEventListener('input', ()=>{ clearTimeout(window._uq); window._uq=setTimeout(loadUsers,250); });
+
+async function lockUser(id, locked){
+  const r = await fetch(`/api/admin/users/${id}/lock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({locked})});
+  const d = await r.json();
+  if(!r.ok){toast(d.error||'Lỗi','error');return;}
+  toast(locked?'Đã khoá tài khoản':'Đã mở khoá');
+  loadUsers();
+}
+async function delUser(id, name){
+  if(!confirm(`Xoá user "${name}"? Hành động không thể hoàn tác.`)) return;
+  const r = await fetch(`/api/admin/users/${id}`,{method:'DELETE'});
+  const d = await r.json();
+  if(!r.ok){toast(d.error||'Lỗi','error');return;}
+  toast('Đã xoá user');
+  loadUsers();
+}
+
+// ===== BOOKINGS =====
+async function loadBookings(){
+  const s = $('b-status').value, v = $('b-vehicle').value;
+  let url = '/api/admin/bookings';
+  const p = []; if(s) p.push('status='+s); if(v) p.push('vehicle='+v);
+  if(p.length) url += '?' + p.join('&');
+  const items = await fetch(url).then(r=>r.json());
+  const STATUS_LABEL = {searching:'Đang tìm',driver_assigned:'Đã nhận',in_trip:'Đang đi',completed:'Hoàn tất',confirmed:'Hoàn tất',cancelled:'Đã huỷ'};
+  $('b-tbody').innerHTML = items.map(b=>`
+    <tr>
+      <td><code style="font-size:11px;color:var(--muted)">${b.id}</code></td>
+      <td>${b.username||'-'}</td>
+      <td style="font-size:12px;line-height:1.4">${b.from_text||'-'}<br>↓ ${b.to_text||'-'}</td>
+      <td>${b.icon||''} ${b.vehicle_name||b.vehicle}</td>
+      <td>${b.driver?.name||'<span style="color:var(--muted)">—</span>'}</td>
+      <td><b>${fmt(b.final_fare)}</b></td>
+      <td>×${b.total_multiplier||1}</td>
+      <td><span class="tag s-${b.status||'completed'}">${STATUS_LABEL[b.status||'completed']}</span></td>
+      <td>${(b.created_at||'').slice(0,16).replace('T',' ')}</td>
+      <td style="white-space:nowrap">
+        ${(b.status!=='cancelled' && b.status!=='completed') ? `<button class="btn-x warn" onclick="cancelBooking('${b.id}')">Huỷ</button>` : ''}
+        <button class="btn-x danger" onclick="delBooking('${b.id}')">Xoá</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="10" class="empty">Chưa có chuyến nào</td></tr>';
+}
+$('b-status').addEventListener('change', loadBookings);
+$('b-vehicle').addEventListener('change', loadBookings);
+
+async function cancelBooking(id){
+  if(!confirm('Huỷ chuyến này?'))return;
+  await fetch(`/api/bookings/${id}/cancel`,{method:'POST'});
+  toast('Đã huỷ chuyến'); loadBookings();
+}
+async function delBooking(id){
+  if(!confirm('Xoá chuyến này khỏi lịch sử?'))return;
+  await fetch(`/api/bookings/${id}`,{method:'DELETE'});
+  toast('Đã xoá'); loadBookings();
+}
+
+// ===== PARAMS =====
+let currentParams = null;
+async function loadParams(){
+  currentParams = await fetch('/api/admin/fuzzy-params').then(r=>r.json());
+  const vp = currentParams.vehicle_pricing;
+  $('vehicle-params').innerHTML = Object.entries(vp).map(([code,v])=>`
+    <div class="params-card">
+      <div class="ico">${v.icon}</div>
+      <h4>${v.name}</h4>
+      <div style="font-size:11px;color:var(--muted)">code: <code>${code}</code></div>
+      <label>Giá mở cửa (đ)</label>
+      <input type="number" data-code="${code}" data-field="open" value="${v.open}" />
+      <label>Đơn giá / km (đ)</label>
+      <input type="number" data-code="${code}" data-field="per_km" value="${v.per_km}" />
+    </div>
+  `).join('');
+  $('manual').value = currentParams.manual_factor || 1.0;
+  $('manual-v').textContent = '×'+parseFloat(currentParams.manual_factor||1).toFixed(2);
+}
+$('manual').addEventListener('input', e=>{
+  $('manual-v').textContent = '×'+parseFloat(e.target.value).toFixed(2);
+});
+async function saveParams(){
+  const vp = {};
+  document.querySelectorAll('#vehicle-params input').forEach(inp=>{
+    const c=inp.dataset.code, f=inp.dataset.field;
+    if(!vp[c]) vp[c]={};
+    vp[c][f] = parseFloat(inp.value)||0;
+  });
+  const r = await fetch('/api/admin/fuzzy-params',{method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({vehicle_pricing:vp, manual_factor: parseFloat($('manual').value)})});
+  if(!r.ok){toast('Lỗi lưu','error');return;}
+  toast('Đã lưu! Áp dụng ngay cho tính cước tiếp theo.');
+  loadParams();
+}
+
+async function loadRulesInfo(){
+  const r = await fetch('/api/rules').then(x=>x.json());
+  $('rules-info').innerHTML = `
+    <div class="row-flex" style="gap:12px;flex-wrap:wrap">
+      <div class="params-card" style="flex:1;min-width:220px"><h4>${r.fis1.name}</h4>
+        <div style="font-size:12px;color:var(--muted)">Inputs: ${r.fis1.inputs.join(', ')}</div>
+        <div style="font-size:12px;color:var(--muted)">Output: ${r.fis1.output}</div>
+        <b style="font-family:'Space Grotesk';color:#a78bfa;font-size:18px">${r.fis1.count} luật</b>
+      </div>
+      <div class="params-card" style="flex:1;min-width:220px"><h4>${r.fis2.name}</h4>
+        <div style="font-size:12px;color:var(--muted)">Inputs: ${r.fis2.inputs.join(', ')}</div>
+        <div style="font-size:12px;color:var(--muted)">Output: ${r.fis2.output}</div>
+        <b style="font-family:'Space Grotesk';color:#67e8f9;font-size:18px">${r.fis2.count} luật</b>
+      </div>
+      <div class="params-card" style="flex:1;min-width:220px"><h4>${r.fis3.name}</h4>
+        <div style="font-size:12px;color:var(--muted)">Inputs: ${r.fis3.inputs.join(', ')}</div>
+        <div style="font-size:12px;color:var(--muted)">Output: ${r.fis3.output}</div>
+        <b style="font-family:'Space Grotesk';color:#f9a8d4;font-size:18px">${r.fis3.count} luật</b>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:#cfd4ea">Tổng cộng: <b style="color:#fff">${r.total} luật</b> (${r.fis1.count} + ${r.fis2.count} + ${r.fis3.count})</div>
+  `;
+}
+
+// ===== BRANDING =====
+async function loadBranding(){
+  const b = await fetch('/api/branding').then(r=>r.json());
+  // Logo preview
+  const lp = $('logo-preview');
+  if (b.logo_url){
+    lp.style.backgroundImage = `url('${b.logo_url}')`;
+    lp.textContent = '';
+    $('logo-del').style.display = 'inline-block';
+  } else {
+    lp.style.backgroundImage = '';
+    lp.textContent = (b.site_name || 'F')[0].toUpperCase();
+    $('logo-del').style.display = 'none';
+  }
+  $('bd-name').value    = b.site_name || '';
+  $('bd-tagline').value = b.tagline   || '';
+  // Banners
+  const list = $('banner-list');
+  if (!b.banners || !b.banners.length){
+    list.innerHTML = '<div class="empty" style="grid-column:1/-1">Chưa có banner nào</div>';
+  } else {
+    list.innerHTML = b.banners.map(bn => `
+      <div class="params-card" style="padding:0;overflow:hidden">
+        <div style="aspect-ratio:16/9;background-image:url('${bn.url}');background-size:cover;background-position:center"></div>
+        <div style="padding:12px">
+          <div style="font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:6px">${bn.alt || '<i>không có alt</i>'}</div>
+          <div style="font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:8px">${bn.link || '<i>không có link</i>'}</div>
+          <button class="btn-x danger" onclick="deleteBanner('${bn.id}')">Xoá</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+document.getElementById('logo-file').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('logo', f);
+  const r = await fetch('/api/admin/branding/logo', {method:'POST', body: fd});
+  if(!r.ok){toast('Lỗi tải logo','error'); return;}
+  toast('Đã cập nhật logo. Refresh trang để thấy ở các trang khác.', 'ok');
+  loadBranding();
+});
+async function deleteLogo(){
+  if(!confirm('Xoá logo về mặc định?')) return;
+  await fetch('/api/admin/branding/logo', {method:'DELETE'});
+  toast('Đã xoá logo','ok');
+  loadBranding();
+}
+document.getElementById('banner-file').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData();
+  fd.append('banner', f);
+  fd.append('link', $('banner-link').value.trim());
+  fd.append('alt',  $('banner-alt').value.trim());
+  const r = await fetch('/api/admin/branding/banners', {method:'POST', body: fd});
+  if(!r.ok){toast('Lỗi tải banner','error'); return;}
+  toast('Đã thêm banner','ok');
+  $('banner-link').value=''; $('banner-alt').value='';
+  loadBranding();
+});
+async function deleteBanner(id){
+  if(!confirm('Xoá banner này?')) return;
+  await fetch(`/api/admin/branding/banners/${id}`, {method:'DELETE'});
+  toast('Đã xoá','ok');
+  loadBranding();
+}
+async function saveBrandingInfo(){
+  const r = await fetch('/api/admin/branding/info', {
+    method:'PATCH', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({site_name: $('bd-name').value.trim(), tagline: $('bd-tagline').value.trim()})
+  });
+  if(!r.ok){toast('Lỗi lưu','error'); return;}
+  toast('Đã lưu','ok');
+}
+
+// init
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Chào mừng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+</head>
+<body>
+<div class="splash-page">
+  <div class="splash-inner">
+    <div class="logo-big" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent;background-size:cover;background-position:center"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</div>
+    <h1>{{ branding.site_name or 'FuzzyRide' }}</h1>
+    <p>Đặt xe công nghệ thông minh với <b style="color:var(--text)">Hierarchical Fuzzy Logic</b> — 10 yếu tố thực tế qua 3 FIS Mamdani &amp; 45 luật mờ.</p>
+    <div class="splash-cta">
+      <a class="btn btn-primary" href="/login">Đăng nhập</a>
+      <a class="btn btn-outline" href="/register">Tạo tài khoản</a>
+      <a class="btn btn-outline" href="/">Calculator + Báo cáo</a>
+    </div>
+
+    <div class="splash-features">
+      <div class="feat">
+        <div class="ic-wrap">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1M3.34 7l.7.7M20.66 7l-.7.7M3 12h1M20 12h1M6.343 17.657 12 12l5.657 5.657"/><path d="M9 21h6"/></svg>
+        </div>
+        <b>Fuzzy 3 tầng</b>
+        <p>3 FIS phân cấp xử lý 10 biến với chỉ 45 luật ngôn ngữ.</p>
+      </div>
+      <div class="feat">
+        <div class="ic-wrap">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <b>30+ địa điểm TP.HCM</b>
+        <p>Tìm kiếm bỏ dấu, tự tính khoảng cách Haversine.</p>
+      </div>
+      <div class="feat">
+        <div class="ic-wrap">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <b>Cập nhật realtime</b>
+        <p>Surge, thời tiết, AQI được sinh tự động theo giờ thực.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

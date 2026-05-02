@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Cài đặt lần đầu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+<style>
+  .login-stage{min-height:100vh;display:flex;align-items:stretch;background:var(--bg)}
+  .login-side{flex:1;display:none;align-items:center;justify-content:center;padding:40px;
+    background:linear-gradient(135deg,#00B14F 0%,#009444 100%);color:#fff}
+  .login-side .promo{max-width:420px}
+  .login-side .promo h2{color:#fff;font-size:36px;line-height:1.1;margin-bottom:14px;font-weight:800}
+  .login-side .promo p{color:rgba(255,255,255,.85);font-size:15px;line-height:1.6}
+  .login-side .promo .logo{width:64px;height:64px;background:#fff;color:var(--primary);
+    display:grid;place-items:center;font-family:'Space Grotesk';font-weight:800;font-size:32px;margin-bottom:24px}
+  .login-form-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:36px 20px;background:var(--surface)}
+  .login-form{width:100%;max-width:440px}
+  .login-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  .login-brand .logo{width:36px;height:36px;background:var(--primary);color:#fff;
+    display:grid;place-items:center;font-family:'Space Grotesk';font-weight:800;font-size:18px}
+  .login-brand b{font-family:'Space Grotesk';font-size:18px}
+  .login-form h1{font-size:24px;font-weight:600;margin-bottom:8px}
+  .login-form .sub{font-size:14px;color:var(--muted);margin-bottom:18px}
+  .login-form .demo-hint{background:var(--primary-50);border:1px solid var(--primary-100);
+    padding:10px 12px;font-size:12.5px;color:var(--primary-700);margin-bottom:14px}
+  .login-form .err{background:var(--danger-50);border:1px solid #FCD9D6;color:var(--danger);
+    padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+  .login-form .err.show{display:block}
+  .input-row{margin-bottom:12px}
+  .input-row input{width:100%;background:var(--surface);border:1px solid var(--line);
+    padding:13px 16px;font-size:14px;color:var(--text);outline:0;font-family:inherit;transition:.12s}
+  .input-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,177,79,.15)}
+  .btn-cta{width:100%;background:var(--primary);color:#fff;border:0;cursor:pointer;
+    padding:14px;font-size:14px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;font-family:inherit;transition:.12s;margin-top:8px}
+  .btn-cta:hover{background:var(--primary-700)}
+  @media (min-width:1024px){ .login-side{display:flex} }
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div class="login-stage">
+  <div class="login-side">
+    <div class="promo">
+      <div class="logo">⚙</div>
+      <h2>Thiết lập<br>lần đầu.</h2>
+      <p>Hệ thống cần một quản trị viên để bắt đầu. Tạo admin đầu tiên để có thể quản lý người dùng, booking và tham số fuzzy.</p>
+    </div>
+  </div>
+
+  <div class="login-form-wrap">
+    <form class="login-form" id="f">
+      <div class="login-brand">
+        <div class="logo">F</div>
+        <b>FuzzyRide</b>
+      </div>
+      <h1>Tạo tài khoản admin</h1>
+      <p class="sub">Cài đặt lần đầu — bạn cũng sẽ tự động nhận thêm 1 tài khoản user demo.</p>
+      <div class="demo-hint">Sau khi cài đặt, sẽ có thêm tài khoản: <b>demo / demo123</b></div>
+      <div id="err" class="err"></div>
+
+      <div class="input-row"><input id="fullname" placeholder="Họ và tên" value="Quản trị viên" /></div>
+      <div class="input-row"><input id="username" placeholder="Tên đăng nhập" required pattern="[a-z0-9_]{3,20}" value="admin" /></div>
+      <div class="input-row"><input id="email" type="email" placeholder="Email" required value="admin@fuzzyride.local" /></div>
+      <div class="input-row"><input id="password" type="password" placeholder="Mật khẩu (≥ 6 ký tự)" required minlength="6" /></div>
+
+      <button type="submit" class="btn-cta">Tạo &amp; Bắt đầu</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const tt=document.getElementById('toast');
+const errEl=document.getElementById('err');
+function toast(m,e){tt.textContent=m;tt.classList.toggle('error',!!e);tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2500);}
+document.getElementById('f').addEventListener('submit', async e=>{
+  e.preventDefault(); errEl.classList.remove('show');
+  const r=await fetch('/api/setup',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      fullname:fullname.value.trim(),
+      username:username.value.trim(),
+      email:email.value.trim(),
+      password:password.value
+    })});
+  const d=await r.json();
+  if(!r.ok){errEl.textContent=d.error||'Lỗi cài đặt';errEl.classList.add('show');return;}
+  toast('Thiết lập xong! Chuyển hướng…');
+  setTimeout(()=>location.href='/admin',700);
+});
+</script>
+</body>
+</html>

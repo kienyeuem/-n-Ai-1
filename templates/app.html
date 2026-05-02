@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Đặt chuyến</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div id="side-backdrop" class="side-backdrop" onclick="closeSide()"></div>
+
+<div class="app-shell">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="side-nav" id="side">
+    <div class="brand">
+      <div class="logo" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</div>
+      <div>
+        <div class="title brand-anim">{{ branding.site_name or 'FuzzyRide' }}</div>
+        <div class="sub">Hierarchical FIS</div>
+      </div>
+    </div>
+    <a class="nav-i on" href="/app">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Trang chủ
+    </a>
+    <a class="nav-i" href="/history">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      Lịch sử chuyến
+    </a>
+    <a class="nav-i" href="/profile">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Hồ sơ cá nhân
+    </a>
+    <a class="nav-i" href="/">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Calculator + Báo cáo
+    </a>
+    <a class="nav-i" href="/mockup">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Bảng mockup
+    </a>
+    {% if current_user.role == 'admin' %}
+    <a class="nav-i" href="/admin">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Trang quản trị
+    </a>
+    {% endif %}
+    <div class="spacer"></div>
+    <div class="me">
+      <div class="av" {% if current_user.avatar_url %}style="background-image:url('{{ current_user.avatar_url }}')"{% endif %}>
+        {% if not current_user.avatar_url %}{{ current_user.avatar }}{% endif %}
+      </div>
+      <div class="info">
+        <b>{{ current_user.fullname or current_user.username }}</b>
+        <small>@{{ current_user.username }}</small>
+      </div>
+      <button class="out" onclick="logout()" title="Đăng xuất">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN ==================== -->
+  <div class="app-main">
+    <div class="top-bar">
+      <button class="menu-btn" onclick="toggleSide()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="page-title" id="page-title">Đặt chuyến đi</h1>
+      <div class="top-actions">
+        <a href="/history" title="Lịch sử">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        </a>
+        <a href="/profile" title="Hồ sơ">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Marquee thông báo -->
+    
+
+    <main class="app-content">
+      <div class="spa">
+
+        <!-- ===== SCREEN 1: HOME ===== -->
+        <section id="scr-home" class="spa-screen active">
+
+          <!-- Widget tiện ích: clock / traffic / weather / surge -->
+          <div class="widgets-row" id="app-widgets">
+            <div class="widget w-time">
+              <div class="w-icon" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="w-info">
+                <div class="w-label">Bây giờ</div>
+                <div class="w-value" id="aw-clock">—</div>
+                <div class="w-meta" id="aw-date">—</div>
+              </div>
+            </div>
+            <div class="widget w-traffic">
+              <div class="w-icon" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+              </div>
+              <div class="w-info">
+                <div class="w-label">Traffic</div>
+                <div class="w-value" id="aw-traffic">—</div>
+                <div class="w-meta" id="aw-traffic-meta">—</div>
+              </div>
+            </div>
+            <div class="widget w-weather">
+              <div class="w-icon" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+              </div>
+              <div class="w-info">
+                <div class="w-label">Thời tiết</div>
+                <div class="w-value" id="aw-weather">—</div>
+                <div class="w-meta" id="aw-weather-meta">—</div>
+              </div>
+            </div>
+            <div class="widget w-surge">
+              <div class="w-icon" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="w-info">
+                <div class="w-label">Surge dự kiến</div>
+                <div class="w-value" id="aw-surge">×—</div>
+                <div class="w-meta" id="aw-surge-meta">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-grid">
+
+            <div class="card elev home-form">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div class="section-title" style="margin:0">Bạn đi đâu?</div>
+                <button class="gps-btn" id="gps-btn" type="button" onclick="useCurrentLocation()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+                  Vị trí hiện tại
+                </button>
+              </div>
+              <div class="where" onclick="go('locpick')">
+                <svg class="pin-ic pin-from" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                <div style="flex:1">
+                  <small id="from-lbl">ĐIỂM ĐI</small>
+                  <b id="from-val">Quận 1, TP.HCM</b>
+                </div>
+                <svg class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <div class="where" onclick="go('locpick')" style="background:rgba(217,45,32,.05);border-color:rgba(217,45,32,.25)">
+                <svg class="pin-ic pin-to" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                <div style="flex:1">
+                  <small id="to-lbl">ĐIỂM ĐẾN</small>
+                  <b id="to-val" style="color:var(--muted)">Chọn điểm đến…</b>
+                </div>
+                <svg class="search-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+
+              <div class="section-title" style="margin-top:18px">Chọn phương tiện</div>
+              <div class="v-grid" id="v-grid">
+                {% set specs_map = {
+                  'bike': {'pax':'1 hành khách','luggage':'5 kg hành lý','speed':'~25 km/h','wait':'~2 phút'},
+                  '4s':   {'pax':'4 hành khách','luggage':'30 kg hành lý','speed':'~30 km/h','wait':'~4 phút'},
+                  '7s':   {'pax':'7 hành khách','luggage':'60 kg hành lý','speed':'~28 km/h','wait':'~5 phút'}
+                } %}
+                {% for code, v in vehicles.items() %}
+                {% set s = specs_map.get(code, {}) %}
+                <div class="v-card{% if loop.first %} sel{% endif %}" data-code="{{code}}">
+                  <div class="nm">{{ v.name }}</div>
+                  <div class="specs">
+                    <div class="row"><span>Sức chứa</span><b>{{ s.pax }}</b></div>
+                    <div class="row"><span>Hành lý</span><b>{{ s.luggage }}</b></div>
+                    <div class="row"><span>Tốc độ TB</span><b>{{ s.speed }}</b></div>
+                    <div class="row"><span>Đợi xe</span><b>{{ s.wait }}</b></div>
+                  </div>
+                  <div class="pr">Mở cửa {{ '{:,}'.format(v.open|int) }}đ · {{ '{:,}'.format(v.per_km|int) }}đ/km</div>
+                </div>
+                {% endfor %}
+              </div>
+
+              <button class="btn btn-primary block" id="btn-book" style="margin-top:6px">Tiếp tục →</button>
+            </div>
+
+            <div class="real-map" id="home-map"></div>
+
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 2: LOCATION PICK ===== -->
+        <section id="scr-locpick" class="spa-screen">
+          <div class="card elev">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+              <button class="btn btn-ghost btn-sm" onclick="go('home')">← Quay lại</button>
+              <h2 style="margin:0">Nhập địa điểm</h2>
+            </div>
+            <div class="loc-form">
+              <div class="pins"><div class="pin-a"></div><div class="line-v"></div><div class="pin-b"></div></div>
+              <div class="fields">
+                <div>
+                  <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Điểm đi</label>
+                  <input class="ff" id="inp-from" placeholder="Nhập tên điểm đi…" />
+                </div>
+                <div>
+                  <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Điểm đến</label>
+                  <input class="ff" id="inp-to" placeholder="Nhập tên điểm đến…" />
+                </div>
+              </div>
+            </div>
+            <div class="section-title">Gợi ý phổ biến</div>
+            <div class="loc-list" id="loc-results"></div>
+            <button class="btn btn-primary block" id="btn-confirm-loc" style="margin-top:18px">Xác nhận tuyến →</button>
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 3: ESTIMATE ===== -->
+        <section id="scr-estimate" class="spa-screen">
+          <div class="est-grid">
+            <div class="card elev">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                <button class="btn btn-ghost btn-sm" onclick="go('home')">← Quay lại</button>
+                <h2 style="margin:0">Ước tính giá</h2>
+              </div>
+              <div class="est-route">
+                <div class="pt"><span class="dot-i green"></span><b id="est-from">—</b></div>
+                <div class="gap"></div>
+                <div class="pt"><span class="dot-i pink"></span><b id="est-to">—</b></div>
+              </div>
+              <div class="est-fare">
+                <div class="lbl">Tổng cước ước tính</div>
+                <div class="price" id="est-price">—</div>
+                <div class="sub" id="est-sub">đang tính…</div>
+              </div>
+              <button class="btn btn-primary block" id="btn-confirm-est">Đặt chuyến với giá này →</button>
+            </div>
+
+            <div class="card">
+              <div class="section-title">Phân tích Fuzzy</div>
+              <div class="mults-3">
+                <div class="m3 b1"><small>BASE</small><b id="m-base">—</b></div>
+                <div class="m3 b2"><small>ENV</small><b id="m-env">—</b></div>
+                <div class="m3 b3"><small>SURGE</small><b id="m-surge">—</b></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 4: SEARCHING ===== -->
+        <section id="scr-search" class="spa-screen">
+          <div class="card elev">
+            <div class="search-stage">
+              <div class="search-pulse">
+                <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+              </div>
+              <h2>Đang tìm tài xế gần bạn…</h2>
+              <p class="muted" id="search-msg">Đã quét <b style="color:#a78bfa" id="scan-count">0</b> tài xế trong khu vực</p>
+              <div class="loader-dots"><span></span><span></span><span></span></div>
+              <div class="search-summary">
+                <div><small style="color:var(--muted);font-size:11px">CHUYẾN</small><b id="ss-route">—</b></div>
+                <div><small style="color:var(--muted);font-size:11px">CƯỚC</small><b id="ss-fare">—</b></div>
+              </div>
+              <div class="search-actions">
+                <button class="btn btn-ghost" id="btn-skip-search">▸ Tìm ngay</button>
+                <button class="btn btn-danger" id="btn-cancel-search">Huỷ chuyến</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 5: DRIVER ACCEPTED ===== -->
+        <section id="scr-driver" class="spa-screen">
+          <div class="driver-grid">
+            <div class="card elev">
+              <div class="d-row">
+                <div class="avatar md" id="d-av">D</div>
+                <div class="d-info">
+                  <div class="nm" id="d-name">—</div>
+                  <div class="rt"><span class="star">★</span> <span id="d-rt">—</span> · <span id="d-trips">—</span> chuyến</div>
+                </div>
+                <div class="d-eta">
+                  <b id="d-eta">— phút</b>
+                  <small>đến điểm đón</small>
+                </div>
+              </div>
+              <div class="vehicle-info">
+                <div class="vi-info">
+                  <b id="d-model">—</b>
+                  <small id="d-color">— · —</small>
+                </div>
+                <div class="plate" id="d-plate">—</div>
+              </div>
+              <div class="actions-2">
+                <button class="btn btn-success" onclick="callDriver()">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Gọi tài xế
+                </button>
+                <button class="btn btn-ghost" onclick="go('home')">
+                  <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  Trở về
+                </button>
+              </div>
+              <button class="btn btn-primary block" id="btn-start-trip">Bắt đầu chuyến đi →</button>
+              <button class="btn btn-danger block" style="margin-top:10px" id="btn-cancel-driver">Huỷ chuyến</button>
+            </div>
+
+            <div class="real-map" id="driver-map"></div>
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 6: IN-TRIP ===== -->
+        <section id="scr-trip" class="spa-screen">
+          <div class="trip-grid">
+            <div class="card elev">
+              <div class="section-title">Đang di chuyển</div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+                <div>
+                  <small style="color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase">Còn lại</small>
+                  <div style="font-family:'Space Grotesk';font-size:30px;font-weight:800;color:#a78bfa" id="trip-eta">— phút</div>
+                </div>
+                <div style="text-align:right">
+                  <small style="color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase">Tài xế</small>
+                  <div style="font-size:14px;font-weight:600" id="trip-driver">—</div>
+                </div>
+              </div>
+              <div class="progress"><span id="trip-prog" style="width:5%"></span></div>
+              <div class="trip-stats">
+                <div class="ts x"><small>Quãng đường</small><b id="trip-km">— km</b></div>
+                <div class="ts y"><small>Tốc độ</small><b id="trip-speed">— km/h</b></div>
+                <div class="ts z"><small>Cước</small><b id="trip-fare">—</b></div>
+              </div>
+              <button class="btn btn-ghost block" id="btn-finish-now">▸ Đã đến nơi</button>
+            </div>
+            <div class="real-map" id="trip-map"></div>
+          </div>
+        </section>
+
+        <!-- ===== SCREEN 7: COMPLETE + RATE ===== -->
+        <section id="scr-done" class="spa-screen">
+          <div class="card elev">
+            <div class="done-stage">
+              <div class="done-badge">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <h2>Chuyến đi <span class="grad-text">hoàn tất</span></h2>
+              <p class="lead">Cảm ơn bạn đã sử dụng FuzzyRide!</p>
+              <div class="done-receipt">
+                <h4>Chi tiết chuyến</h4>
+                <div class="li"><span>Tài xế</span><b id="r-driver">—</b></div>
+                <div class="li"><span>Quãng đường</span><b id="r-km">— km</b></div>
+                <div class="li"><span>Thời gian</span><b id="r-time">— phút</b></div>
+                <div class="li"><span>Hệ số tổng</span><b id="r-mult">—</b></div>
+                <div class="li total"><span>Tổng thanh toán</span><b id="r-fare">—</b></div>
+              </div>
+              <h4 style="font-size:12.5px;color:var(--muted);font-weight:600;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em">Đánh giá chuyến đi</h4>
+              <div class="stars" id="stars">
+                <button type="button" data-v="1"><svg class="ic ic-lg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+                <button type="button" data-v="2"><svg class="ic ic-lg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+                <button type="button" data-v="3"><svg class="ic ic-lg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+                <button type="button" data-v="4"><svg class="ic ic-lg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+                <button type="button" data-v="5"><svg class="ic ic-lg" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+              </div>
+              <textarea id="comment" placeholder="Nhận xét về tài xế hoặc chuyến đi (tùy chọn)…"></textarea>
+              <div class="done-actions">
+                <button class="btn btn-primary" id="btn-rate">Gửi đánh giá</button>
+                <a class="btn btn-ghost" href="/history">📜 Xem lịch sử</a>
+                <button class="btn btn-outline" onclick="resetFlow()">+ Đặt chuyến mới</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+{% include '_footer.html' %}
+
+<!-- Bottom tab bar (mobile only) -->
+<nav class="bottom-tabs">
+  <a href="#" class="on" onclick="go('home');return false">
+    <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>
+    Trang chủ
+  </a>
+  <a href="/history">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+    Lịch sử
+  </a>
+  <a href="/profile">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Hồ sơ
+  </a>
+  <a href="/">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Fuzzy
+  </a>
+</nav>
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const VEHICLES = {{ vehicles|tojson }};
+const SVG_BIKE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M5.5 17.5 9 8h6l3 4"/></svg>';
+const SVG_CAR  = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>';
+const SVG_VAN  = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h2a2 2 0 0 1 2 2v11h2v3h-3v-3H5v3H2v-3h2V5a2 2 0 0 1 2-2h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="16.5" cy="17.5" r="2"/></svg>';
+const ICONS = { 'bike':SVG_BIKE, '4s':SVG_CAR, '7s':SVG_VAN };
+
+const tt=document.getElementById('toast');
+function toast(m,err){tt.textContent=m;tt.classList.toggle('error',!!err);tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2500);}
+function fmtVnd(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
+function $(id){return document.getElementById(id);}
+
+const PAGE_TITLES = {
+  home:'Đặt chuyến đi', locpick:'Nhập địa điểm',
+  estimate:'Ước tính giá', search:'Đang tìm tài xế',
+  driver:'Tài xế đã nhận', trip:'Đang di chuyển', done:'Hoàn tất'
+};
+
+function go(name){
+  document.querySelectorAll('.spa-screen').forEach(s=>s.classList.remove('active'));
+  $('scr-'+name).classList.add('active');
+  $('page-title').textContent = PAGE_TITLES[name] || 'FuzzyRide';
+  window.scrollTo(0,0);
+}
+
+// Sidebar mobile
+function toggleSide(){
+  $('side').classList.toggle('open');
+  $('side-backdrop').classList.toggle('show');
+}
+function closeSide(){
+  $('side').classList.remove('open');
+  $('side-backdrop').classList.remove('show');
+}
+
+async function logout(){
+  await fetch('/api/auth/logout',{method:'POST'});
+  location.href='/login';
+}
+
+// ---------- state ----------
+const state = {
+  vehicle:'bike', from:null, to:null,
+  distance:0, eta:0, estimate:null, booking:null, driver:null,
+  conditions:null, rating:5,
+};
+
+// ---------- Home: chọn xe ----------
+document.querySelectorAll('#v-grid .v-card').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('#v-grid .v-card').forEach(x=>x.classList.remove('sel'));
+    c.classList.add('sel');
+    state.vehicle = c.dataset.code;
+  });
+});
+
+$('btn-book').addEventListener('click',()=>{
+  if(!state.from || !state.to) return go('locpick');
+  computeEstimate();
+});
+
+// ---------- Location pick ----------
+let locMode='to';
+$('inp-from').addEventListener('focus',()=>locMode='from');
+$('inp-to').addEventListener('focus',()=>locMode='to');
+$('inp-from').addEventListener('input',e=>searchPlaces(e.target.value));
+$('inp-to').addEventListener('input',e=>searchPlaces(e.target.value));
+
+let _geoTimer = null;
+async function searchPlaces(q){
+  q = (q||'').trim();
+  // Local 30 địa điểm trước
+  let localRes = [];
+  try{
+    localRes = await fetch('/api/places?q='+encodeURIComponent(q)+'&limit=8').then(r=>r.json());
+  }catch(e){}
+  renderPlaces(localRes, []); // hiện local trước
+  // Sau debounce 400ms gọi Nominatim cho free-text
+  if(_geoTimer) clearTimeout(_geoTimer);
+  if (!q || q.length < 2) return;
+  _geoTimer = setTimeout(async ()=>{
+    try{
+      const geoRes = await fetch('/api/geocode?q='+encodeURIComponent(q)+'&limit=8').then(r=>r.json());
+      if (Array.isArray(geoRes)) renderPlaces(localRes, geoRes);
+    }catch(e){}
+  }, 400);
+}
+const SVG_PIN = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+const SVG_GLOBE = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+function renderPlaces(local, geocoded){
+  geocoded = geocoded || [];
+  const el = $('loc-results');
+  // Dedupe geocoded vs local theo tên
+  const localNames = new Set((local||[]).map(p=>p.name.toLowerCase()));
+  const geoFiltered = geocoded.filter(p=>!localNames.has(p.name.toLowerCase()));
+  if (!local.length && !geoFiltered.length){
+    el.innerHTML = '<div class="h-empty">Đang tìm… Hoặc thử gõ địa chỉ chi tiết hơn.</div>';
+    return;
+  }
+  let html = '';
+  if (local.length){
+    html += '<div class="grp" style="font-size:11px;color:var(--muted);padding:6px 4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;grid-column:1/-1">Phổ biến</div>';
+    html += local.map(p=>itemHTML(p, SVG_PIN)).join('');
+  }
+  if (geoFiltered.length){
+    html += '<div class="grp" style="font-size:11px;color:var(--muted);padding:6px 4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;grid-column:1/-1;margin-top:8px">Kết quả tìm kiếm (OpenStreetMap)</div>';
+    html += geoFiltered.map(p=>itemHTML(p, SVG_GLOBE)).join('');
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.loc-item').forEach(it=>{
+    it.addEventListener('click',()=>pickPlace({
+      name:it.dataset.name, lat:parseFloat(it.dataset.lat), lng:parseFloat(it.dataset.lng)
+    }));
+  });
+}
+function itemHTML(p, icon){
+  const short = (p.short || p.name.split(',')[0]).replace(/"/g,'&quot;');
+  const safeName = p.name.replace(/"/g,'&quot;');
+  return `
+    <div class="loc-item" data-name="${safeName}" data-lat="${p.lat}" data-lng="${p.lng}">
+      <div class="ic-wrap">${icon}</div>
+      <div class="info">
+        <div class="nm">${short}</div>
+        <div class="ad">${p.name}</div>
+      </div>
+    </div>
+  `;
+}
+
+function pickPlace(p){
+  if(locMode==='from'){
+    state.from=p; $('inp-from').value=p.name; $('from-val').textContent=p.name;
+    locMode='to'; $('inp-to').focus();
+  }else{
+    state.to=p; $('inp-to').value=p.name; $('to-val').textContent=p.name; $('to-val').style.color='#fff';
+  }
+}
+
+$('btn-confirm-loc').addEventListener('click', async ()=>{
+  if(!state.from || !state.to){toast('Chọn cả điểm đi và điểm đến', true);return;}
+  await loadRoute();
+  computeEstimate();
+});
+
+async function loadRoute(){
+  const r = await fetch('/api/route',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      from:state.from.name, from_lat:state.from.lat, from_lng:state.from.lng,
+      to:state.to.name,     to_lat:state.to.lat,     to_lng:state.to.lng
+    })});
+  if(!r.ok){toast('Không tính được tuyến', true); return;}
+  const d = await r.json();
+  state.distance = d.distance_km;
+  state.eta = d.estimated_min;
+}
+
+searchPlaces('');
+
+// ============ Geolocation: lấy vị trí hiện tại ============
+async function useCurrentLocation(){
+  if (!navigator.geolocation){
+    toast('Trình duyệt không hỗ trợ định vị', true); return;
+  }
+  const btn = $('gps-btn');
+  btn.classList.add('loading');
+  btn.lastChild.textContent = 'Đang định vị…';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude:lat, longitude:lng} = pos.coords;
+    try{
+      const r = await fetch(`/api/reverse-geocode?lat=${lat}&lng=${lng}`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error||'reverse failed');
+      state.from = {name: d.name, lat, lng};
+      $('from-val').textContent = d.short || d.name.split(',').slice(0,2).join(', ');
+      $('inp-from').value = d.name;
+      toast('Đã lấy vị trí hiện tại');
+    }catch(e){
+      // Fallback: chỉ lưu lat/lng
+      state.from = {name: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng};
+      $('from-val').textContent = state.from.name;
+      toast('Đã lưu toạ độ (chưa lấy được tên)');
+    }
+    btn.classList.remove('loading');
+    btn.lastChild.textContent = 'Vị trí hiện tại';
+  }, err=>{
+    btn.classList.remove('loading');
+    btn.lastChild.textContent = 'Vị trí hiện tại';
+    if (err.code === err.PERMISSION_DENIED) toast('Bạn đã từ chối quyền định vị', true);
+    else if (err.code === err.POSITION_UNAVAILABLE) toast('Không xác định được vị trí', true);
+    else if (err.code === err.TIMEOUT) toast('Định vị quá thời gian', true);
+    else toast('Lỗi định vị', true);
+  }, { enableHighAccuracy:true, timeout:12000, maximumAge:60000 });
+}
+
+// Tự gọi useCurrentLocation lần đầu (nếu user đã cấp quyền trước đó, sẽ chạy âm thầm)
+if (navigator.permissions){
+  navigator.permissions.query({name:'geolocation'}).then(p=>{
+    if (p.state === 'granted') useCurrentLocation();
+  }).catch(()=>{});
+}
+
+// ============ Widgets ============
+function tickClockApp(){
+  const d = new Date();
+  $('aw-clock').textContent =
+    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  const days = ['CN','T2','T3','T4','T5','T6','T7'];
+  $('aw-date').textContent = `${days[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}`;
+}
+tickClockApp(); setInterval(tickClockApp, 30000);
+
+function _trafficLabel(v){
+  if (v < 3) return ['Thông thoáng','Đường rộng rãi'];
+  if (v < 5) return ['Vừa phải','Lưu thông ổn'];
+  if (v < 7) return ['Đông xe','Hơi chậm'];
+  if (v < 9) return ['Kẹt xe','Di chuyển khó'];
+  return ['Tắc nghẽn','Nên hoãn chuyến'];
+}
+function _weatherLabel(v){
+  if (v < 1)   return ['Nắng đẹp', ''];
+  if (v < 2)   return ['Có mây',   ''];
+  if (v < 2.8) return ['Mưa nhẹ',  ''];
+  if (v < 3.5) return ['Mưa to',   ''];
+  return ['Bão', ''];
+}
+function _surgeColor(v){
+  if (v < 1.2) return ['×'+v.toFixed(2), 'Bình thường', '#00B14F'];
+  if (v < 1.5) return ['×'+v.toFixed(2), 'Nhẹ',          '#DC6803'];
+  if (v < 1.8) return ['×'+v.toFixed(2), 'Cao',          '#D97706'];
+  return ['×'+v.toFixed(2), 'Rất cao', '#D92D20'];
+}
+async function loadAppWidgets(){
+  try{
+    const c = await (await fetch('/api/auto-conditions')).json();
+    const t = _trafficLabel(c.traffic_level);
+    $('aw-traffic').textContent      = t[0];
+    $('aw-traffic-meta').textContent = `Mức ${c.traffic_level}/10`;
+    const w = _weatherLabel(c.weather);
+    $('aw-weather').textContent      = `${w[1]} ${w[0]}`;
+    $('aw-weather-meta').textContent = `${c.temperature}°C · AQI ${c.air_quality}`;
+    const r = await fetch('/api/calculate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        distance:5, estimated_time:15,
+        time_of_day:c.time_of_day, day_type:c.day_type,
+        traffic_level:c.traffic_level, weather:c.weather,
+        temperature:c.temperature, air_quality:c.air_quality,
+        demand_level:c.demand_level, driver_availability:c.driver_availability,
+        vehicle:'bike'
+      })
+    }).then(x=>x.json());
+    const s = _surgeColor(r.total_multiplier || 1.0);
+    $('aw-surge').textContent      = s[0];
+    $('aw-surge').style.color      = s[2];
+    $('aw-surge-meta').textContent = s[1];
+  }catch(e){}
+}
+loadAppWidgets(); setInterval(loadAppWidgets, 60000);
+
+// ============ Real Leaflet Map ============
+let homeMap = null, homeMarker = null;
+function initHomeMap(){
+  const el = document.getElementById('home-map');
+  if (!el || homeMap) return;
+  homeMap = L.map(el, {zoomControl:true}).setView([10.78, 106.7], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19,
+  }).addTo(homeMap);
+  homeMarker = L.marker([10.78, 106.7], {draggable:true}).addTo(homeMap);
+  homeMarker.on('dragend', async ()=>{
+    const ll = homeMarker.getLatLng();
+    try{
+      const r = await fetch(`/api/reverse-geocode?lat=${ll.lat}&lng=${ll.lng}`);
+      const d = await r.json();
+      if (r.ok){
+        state.from = {name: d.name, lat: ll.lat, lng: ll.lng};
+        $('from-val').textContent = d.short || d.name.split(',').slice(0,2).join(', ');
+        toast('Đã cập nhật điểm đi từ bản đồ');
+      }
+    }catch(e){}
+  });
+  setTimeout(()=>homeMap.invalidateSize(), 100);
+}
+// Patch useCurrentLocation để cập nhật map
+const _origUseGPS = useCurrentLocation;
+useCurrentLocation = async function(){
+  await _origUseGPS();
+  if (state.from && state.from.lat && homeMap){
+    homeMap.setView([state.from.lat, state.from.lng], 15);
+    homeMarker.setLatLng([state.from.lat, state.from.lng]);
+  }
+};
+// Init map on page load
+window.addEventListener('load', initHomeMap);
+
+let driverMapObj = null, tripMapObj = null;
+function initDriverMap(driver){
+  const el = document.getElementById('driver-map');
+  if (!el) return;
+  const center = state.from && state.from.lat ? [state.from.lat, state.from.lng] : [10.78, 106.7];
+  if (!driverMapObj){
+    driverMapObj = L.map(el, {zoomControl:true}).setView(center, 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'© OpenStreetMap', maxZoom:19,
+    }).addTo(driverMapObj);
+  } else {
+    driverMapObj.setView(center, 14);
+  }
+  // Marker điểm đón (xanh)
+  L.marker(center, {title:'Điểm đón'}).addTo(driverMapObj).bindPopup('Điểm đón');
+  // Marker tài xế (offset random gần đó)
+  const dLat = center[0] + (Math.random()-.5)*0.01;
+  const dLng = center[1] + (Math.random()-.5)*0.01;
+  L.circleMarker([dLat, dLng], {
+    radius:8, color:'#00B14F', fillColor:'#00B14F', fillOpacity:.85, weight:2
+  }).addTo(driverMapObj).bindPopup(`Tài xế: ${driver?.name || ''}`).openPopup();
+  // Đường nối nét đứt
+  L.polyline([[dLat,dLng], center], {color:'#00B14F', weight:3, dashArray:'8,6', opacity:.7}).addTo(driverMapObj);
+  setTimeout(()=>driverMapObj.invalidateSize(), 200);
+}
+
+function initTripMap(){
+  const el = document.getElementById('trip-map');
+  if (!el) return;
+  const from = state.from && state.from.lat ? [state.from.lat, state.from.lng] : [10.78, 106.7];
+  const to   = state.to   && state.to.lat   ? [state.to.lat,   state.to.lng]   : [10.82, 106.65];
+  if (!tripMapObj){
+    tripMapObj = L.map(el, {zoomControl:true}).setView(from, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:'© OpenStreetMap', maxZoom:19,
+    }).addTo(tripMapObj);
+  }
+  L.marker(from, {title:'Điểm đón'}).addTo(tripMapObj).bindPopup('Điểm đón');
+  L.marker(to,   {title:'Điểm đến'}).addTo(tripMapObj).bindPopup('Điểm đến');
+  L.polyline([from, to], {color:'#00B14F', weight:4, opacity:.8}).addTo(tripMapObj);
+  // Fit bounds 2 markers
+  tripMapObj.fitBounds([from, to], {padding:[40,40]});
+  setTimeout(()=>tripMapObj.invalidateSize(), 200);
+}
+
+
+
+// ---------- Estimate ----------
+async function computeEstimate(){
+  const cond = await (await fetch('/api/auto-conditions')).json();
+  state.conditions = cond;
+  const payload = {
+    distance: state.distance || 4,
+    estimated_time: state.eta || 12,
+    time_of_day: cond.time_of_day, day_type: cond.day_type,
+    traffic_level: cond.traffic_level, weather: cond.weather,
+    temperature: cond.temperature, air_quality: cond.air_quality,
+    demand_level: cond.demand_level, driver_availability: cond.driver_availability,
+    vehicle: state.vehicle,
+  };
+  const r = await fetch('/api/calculate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d = await r.json();
+  state.estimate = {...payload, ...d};
+  $('est-from').textContent = state.from?.name || 'Vị trí hiện tại';
+  $('est-to').textContent   = state.to?.name   || '—';
+  $('est-price').textContent= fmtVnd(d.final_fare);
+  $('est-sub').textContent  = `${d.icon} ${d.vehicle} · ${state.distance||4} km · ~${state.eta||12} phút`;
+  $('m-base').textContent   = '×' + d.base_multiplier;
+  $('m-env').textContent    = '×' + d.environment_factor;
+  $('m-surge').textContent  = '×' + d.surge_factor;
+  go('estimate');
+}
+
+// ---------- Đặt chuyến → tìm tài xế ----------
+$('btn-confirm-est').addEventListener('click', async ()=>{
+  const e = state.estimate; if(!e){toast('Chưa có ước tính',true);return;}
+  const body = {
+    from_text: state.from?.name || 'Vị trí hiện tại',
+    to_text:   state.to?.name   || '',
+    vehicle: state.vehicle,
+    distance:e.distance, estimated_time:e.estimated_time, time_of_day:e.time_of_day,
+    day_type:e.day_type, traffic_level:e.traffic_level, weather:e.weather,
+    temperature:e.temperature, air_quality:e.air_quality,
+    demand_level:e.demand_level, driver_availability:e.driver_availability,
+  };
+  const r = await fetch('/api/bookings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){toast('Không tạo được chuyến',true);return;}
+  state.booking = await r.json();
+  $('ss-route').textContent = (state.from?.name?.split(',')[0]||'…') + ' → ' + (state.to?.name?.split(',')[0]||'…');
+  $('ss-fare').textContent  = fmtVnd(state.booking.final_fare);
+  go('search');
+  startSearchSim();
+});
+
+// ---------- Search simulation ----------
+let searchTimer=null, scanCount=0;
+function startSearchSim(){
+  scanCount=0; $('scan-count').textContent='0';
+  if(searchTimer) clearInterval(searchTimer);
+  searchTimer = setInterval(()=>{
+    scanCount += Math.floor(Math.random()*3)+1;
+    $('scan-count').textContent = scanCount;
+  }, 350);
+  const wait = 3000 + Math.random()*2000;
+  setTimeout(assignDriver, wait);
+}
+$('btn-skip-search').addEventListener('click', assignDriver);
+$('btn-cancel-search').addEventListener('click', async ()=>{
+  if(searchTimer) clearInterval(searchTimer);
+  if(state.booking) await fetch(`/api/bookings/${state.booking.id}/cancel`,{method:'POST'});
+  toast('Đã huỷ chuyến');
+  setTimeout(()=>{resetFlow();},700);
+});
+
+async function assignDriver(){
+  if(searchTimer){clearInterval(searchTimer);searchTimer=null;}
+  if(!state.booking) return;
+  const r = await fetch(`/api/bookings/${state.booking.id}/assign`,{method:'POST'});
+  if(!r.ok){toast('Không tìm thấy tài xế',true);return;}
+  const b = await r.json();
+  state.booking = b;
+  state.driver = b.driver;
+  fillDriver(b.driver);
+  go('driver');
+}
+
+function fillDriver(d){
+  $('d-av').textContent = (d.name||'D').split(' ').slice(-1)[0][0]?.toUpperCase()||'D';
+  $('d-name').textContent = d.name;
+  $('d-rt').textContent = d.rating;
+  $('d-trips').textContent = d.trips;
+  $('d-eta').textContent = d.eta_min + ' phút';
+  $('d-model').textContent = d.model;
+  $('d-color').textContent = `${d.color} · ${d.distance_m} m từ bạn`;
+  $('d-plate').textContent = d.plate;
+  // Init real map khi vào màn driver
+  setTimeout(()=>initDriverMap(d), 100);
+}
+
+function callDriver(){
+  if(!state.driver) return;
+  toast(`📞 Đang kết nối tới ${state.driver.name} (${state.driver.phone})…`);
+}
+
+// ---------- Driver → bắt đầu chuyến ----------
+$('btn-start-trip').addEventListener('click', startTrip);
+$('btn-cancel-driver').addEventListener('click', async ()=>{
+  if(state.booking) await fetch(`/api/bookings/${state.booking.id}/cancel`,{method:'POST'});
+  toast('Đã huỷ chuyến');
+  setTimeout(resetFlow,700);
+});
+
+let tripTimer=null, tripStart=0, tripDur=0;
+async function startTrip(){
+  await fetch(`/api/bookings/${state.booking.id}/start`,{method:'POST'});
+  $('trip-driver').textContent = state.driver?.name?.split(' ').slice(-2).join(' ');
+  setTimeout(()=>initTripMap(), 100);
+  go('trip');
+  tripStart = Date.now();
+  tripDur = 12_000;
+  if(tripTimer) clearInterval(tripTimer);
+  tripTimer = setInterval(updateTrip, 250);
+}
+function updateTrip(){
+  const elapsed = Date.now() - tripStart;
+  const pct = Math.min(100, (elapsed/tripDur)*100);
+  const realRemainMin = Math.max(0, (1 - pct/100) * (state.eta || 12));
+  $('trip-prog').style.width = pct + '%';
+  $('trip-eta').textContent = realRemainMin.toFixed(1) + ' phút';
+  $('trip-km').textContent  = (state.distance * (pct/100)).toFixed(1) + '/' + (state.distance||4) + ' km';
+  $('trip-speed').textContent = (24 + Math.random()*8).toFixed(0) + ' km/h';
+  $('trip-fare').textContent = fmtVnd(state.booking.final_fare * (0.4 + 0.6*pct/100));
+  if(pct >= 100) finishTrip();
+}
+$('btn-finish-now').addEventListener('click', finishTrip);
+
+async function finishTrip(){
+  if(tripTimer){clearInterval(tripTimer);tripTimer=null;}
+  await fetch(`/api/bookings/${state.booking.id}/complete`,{method:'POST'});
+  $('r-driver').textContent = state.driver?.name || '—';
+  $('r-km').textContent     = (state.distance||4) + ' km';
+  $('r-time').textContent   = (state.eta||12) + ' phút';
+  $('r-mult').textContent   = '×' + state.booking.total_multiplier;
+  $('r-fare').textContent   = fmtVnd(state.booking.final_fare);
+  go('done');
+}
+
+// ---------- Stars + rate ----------
+const starsEl = $('stars');
+function paintStars(){
+  starsEl.querySelectorAll('button').forEach(s=>s.classList.toggle('on', parseInt(s.dataset.v) <= state.rating));
+}
+starsEl.querySelectorAll('button').forEach(s=>{
+  s.addEventListener('click',()=>{state.rating=parseInt(s.dataset.v);paintStars();});
+});
+paintStars();
+
+$('btn-rate').addEventListener('click', async ()=>{
+  await fetch(`/api/bookings/${state.booking.id}/rate`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({stars:state.rating, comment:$('comment').value})});
+  toast('Cảm ơn đánh giá của bạn!');
+  setTimeout(()=>location.href='/history', 900);
+});
+
+function resetFlow(){
+  state.from=null; state.to=null; state.distance=0; state.eta=0;
+  state.estimate=null; state.booking=null; state.driver=null; state.rating=5;
+  $('from-val').textContent='Quận 1, TP.HCM';
+  $('to-val').textContent='Chọn điểm đến…'; $('to-val').style.color='var(--muted)';
+  $('inp-from').value=''; $('inp-to').value='';
+  $('comment').value='';
+  paintStars();
+  go('home');
+}
+</script>
+</body>
+</html>

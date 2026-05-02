@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FuzzyRide — Tính cước xe công nghệ bằng Logic Mờ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <span class="brand-logo" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</span>
+      <strong class="brand-anim">{{ branding.site_name or 'FuzzyRide' }}</strong>
+    </a>
+    <nav class="nav-links">
+      <a href="#calc">Tính cước</a>
+      <a href="/mockup">Mockup</a>
+    </nav>
+    {% if current_user %}
+      <a class="btn btn-ghost" href="/app" style="margin-right:6px">Mở app</a>
+      {% if current_user.role == 'admin' %}
+        <a class="btn btn-ghost" href="/admin" style="margin-right:6px">Admin</a>
+      {% endif %}
+      <a class="btn btn-primary" href="/profile" title="{{ current_user.username }}">{{ current_user.fullname or current_user.username }}</a>
+    {% else %}
+      <a class="btn btn-ghost" href="/login" style="margin-right:6px">Đăng nhập</a>
+      <a class="btn btn-primary" href="/app">Mở app →</a>
+    {% endif %}
+  </div>
+</header>
+
+<!-- Banner section: 1 lớn (carousel) + 2 nhỏ stacked -->
+<div class="hero-banners">
+  <div class="banner-carousel" id="banner-carousel">
+    <div class="slides" id="banner-slides"></div>
+    <button class="nav-btn prev" onclick="bannerPrev()" aria-label="Trước">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button class="nav-btn next" onclick="bannerNext()" aria-label="Sau">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="dots" id="banner-dots"></div>
+  </div>
+  <div class="banner-side">
+    <a class="banner-mini" id="banner-mini-1" href="/app">
+      <div class="mini-content">
+        <div class="mini-title">Đặt xe ngay</div>
+        <div class="mini-sub">Cước minh bạch · 3 FIS</div>
+      </div>
+    </a>
+    <a class="banner-mini" id="banner-mini-2" href="/admin">
+      <div class="mini-content">
+        <div class="mini-title">Tuỳ biến branding</div>
+        <div class="mini-sub">Logo · Banner · Tham số</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-text">
+    <span class="pill"> Hierarchical Fuzzy · 10 inputs · 45 rules</span>
+    <h1>Tính cước xe <span class="grad">thông minh</span><br>theo thời gian thực.</h1>
+    <p>Hệ thống tính giá theo kiến trúc <b>Fuzzy Logic phân cấp 3 tầng</b> — kết hợp 10 yếu tố từ quãng đường, giao thông, thời tiết đến cung cầu để đưa ra mức giá <b>công bằng &amp; minh bạch</b>.</p>
+    <div class="hero-cta">
+      <a href="#calc" class="btn btn-primary">Tính cước ngay</a>
+      <a href="#fuzzy" class="btn btn-outline">Xem hàm thuộc</a>
+    </div>
+    <div class="hero-stats">
+      <div><b>10</b><span>Biến đầu vào</span></div>
+      <div><b>3</b><span>FIS phân cấp</span></div>
+      <div><b>45</b><span>Luật suy diễn</span></div>
+    </div>
+  </div>
+  <div class="hero-card">
+    <div class="card-glow"></div>
+    <div class="receipt">
+      <div class="receipt-head">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="receipt-title">Live Estimate</span>
+      </div>
+      <div class="route">
+        <div><i class="ico from"></i><div><small>Điểm đón</small><b id="hero-from">Quận 1, TP.HCM</b></div></div>
+        <div class="dashed"></div>
+        <div><i class="ico to"></i><div><small>Điểm đến</small><b id="hero-to">Sân bay Tân Sơn Nhất</b></div></div>
+      </div>
+      <div class="receipt-row"><span>Quãng đường</span><b id="hero-dist">8.2 km</b></div>
+      <div class="receipt-row"><span>Base × Env × Surge</span>
+        <b class="grad" id="hero-mult">×1.00 × 1.00 × 1.00</b>
+      </div>
+      <div class="receipt-total">
+        <span>Tổng cước</span>
+        <h2 id="hero-fare">68.000đ</h2>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CALC -->
+<section id="calc" class="section">
+  <div class="section-head">
+    <h2>Bảng điều khiển <span class="grad">FuzzyRide</span></h2>
+    <p>Chọn xe, nhập 10 biến đầu vào — hệ thống tự suy diễn qua 3 FIS.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="trip"> Chuyến đi</button>
+    <button class="tab" data-tab="env"> FIS-2: Môi trường</button>
+    <button class="tab" data-tab="supply"> FIS-3: Cung cầu</button>
+    <button class="tab" data-tab="fuzzy"> Biến mờ</button>
+    <button class="tab" data-tab="rules"> Luật mờ</button>
+  </div>
+
+  <div class="tab-grid">
+    <div class="panel">
+
+      <!-- TAB 1: TRIP (FIS-1 inputs + vehicle + locations) -->
+      <div class="tab-panel active" data-panel="trip">
+        <h3>1. Chọn loại xe</h3>
+        <div class="vehicle-grid">
+          {% for key, v in vehicles.items() %}
+          <label class="vehicle {% if loop.first %}selected{% endif %}">
+            <input type="radio" name="vehicle" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <div class="v-icon">{{ v.icon }}</div>
+            <div class="v-name">{{ v.name }}</div>
+            <div class="v-price">{{ '{:,.0f}'.format(v.per_km) }}đ/km</div>
+          </label>
+          {% endfor %}
+        </div>
+
+        <h3>2. Điểm đón &amp; điểm đến</h3>
+        <div class="row-2">
+          <div class="field autocomplete">
+            <label>Điểm đón</label>
+            <input id="from" type="text" value="Quận 1, TP.HCM" autocomplete="off" />
+            <ul class="suggest" data-for="from"></ul>
+          </div>
+          <div class="field autocomplete">
+            <label>Điểm đến</label>
+            <input id="to" type="text" value="Sân bay Tân Sơn Nhất" autocomplete="off" />
+            <ul class="suggest" data-for="to"></ul>
+          </div>
+        </div>
+        <button id="route-btn" class="btn btn-outline btn-sm"> Tính tuyến đường</button>
+
+        <h3>3. FIS-1 · Quãng đường &amp; Thời gian</h3>
+        <div class="slider-block" data-var="distance">
+          <div class="slider-label"><span> Distance (km)</span><span class="hint">short / medium / long / very_long</span></div>
+          <div class="slider-row">
+            <input id="distance" type="range" min="0" max="50" step="0.1" value="8.2">
+            <output id="distance-out">8.2 km</output>
+          </div>
+        </div>
+        <div class="slider-block" data-var="estimated_time">
+          <div class="slider-label"><span>⏱ Estimated time (phút)</span><span class="hint">fast / normal / slow / very_slow</span></div>
+          <div class="slider-row">
+            <input id="estimated_time" type="range" min="0" max="120" step="0.5" value="20">
+            <output id="estimated_time-out">20 phút</output>
+          </div>
+        </div>
+        <div class="slider-block" data-var="time_of_day">
+          <div class="slider-label"><span> Time of day (0-23)</span><span class="hint">morning_rush / noon / evening_rush / night / late_night</span></div>
+          <div class="slider-row">
+            <input id="time_of_day" type="range" min="0" max="23.99" step="0.1" value="8">
+            <output id="time_of_day-out">08:00</output>
+          </div>
+        </div>
+
+        <h3>4. Day type</h3>
+        <div class="seg" id="day_type-seg">
+          <button class="seg-btn active" data-val="0">Weekday</button>
+          <button class="seg-btn" data-val="1">Weekend</button>
+          <button class="seg-btn" data-val="2">Holiday</button>
+          <input type="hidden" id="day_type" value="0">
+        </div>
+      </div>
+
+      <!-- TAB 2: ENV (FIS-2 inputs) -->
+      <div class="tab-panel" data-panel="env">
+        <div class="env-head">
+          <button id="auto-btn" class="btn btn-outline btn-sm">⚡ Tự dò điều kiện hiện tại</button>
+          <span id="auto-status" class="muted"></span>
+        </div>
+
+        <h3>FIS-2 · Giao thông &amp; Môi trường</h3>
+
+        <div class="slider-block" data-var="traffic_level">
+          <div class="slider-label"><span> Traffic level (0-10)</span><span class="hint">smooth / moderate / heavy / jammed</span></div>
+          <div class="slider-row">
+            <input id="traffic_level" type="range" min="0" max="10" step="0.1" value="5">
+            <output id="traffic_level-out">5.0</output>
+          </div>
+        </div>
+
+        <div class="slider-block" data-var="weather">
+          <div class="slider-label"><span>🌦 Weather (0-4)</span><span class="hint">sunny / cloudy / light_rain / heavy_rain / storm</span></div>
+          <div class="slider-row">
+            <input id="weather" type="range" min="0" max="4" step="0.05" value="0.5">
+            <output id="weather-out">0.5</output>
+          </div>
+        </div>
+
+        <div class="slider-block" data-var="temperature">
+          <div class="slider-label"><span> Temperature (°C)</span><span class="hint">cool / comfortable / hot / very_hot</span></div>
+          <div class="slider-row">
+            <input id="temperature" type="range" min="15" max="40" step="0.1" value="28">
+            <output id="temperature-out">28°C</output>
+          </div>
+        </div>
+
+        <div class="slider-block" data-var="air_quality">
+          <div class="slider-label"><span> Air quality (AQI)</span><span class="hint">good / moderate / unhealthy / hazardous</span></div>
+          <div class="slider-row">
+            <input id="air_quality" type="range" min="0" max="500" step="1" value="80">
+            <output id="air_quality-out">80</output>
+          </div>
+        </div>
+
+        <div class="quick">
+          <button class="chip" data-preset="rush"> Giờ tan tầm</button>
+          <button class="chip" data-preset="rain"> Mưa kẹt xe</button>
+          <button class="chip" data-preset="storm"> Bão lớn</button>
+          <button class="chip" data-preset="clear"> Thông thoáng</button>
+        </div>
+      </div>
+
+      <!-- TAB 3: SUPPLY (FIS-3 inputs) -->
+      <div class="tab-panel" data-panel="supply">
+        <h3>FIS-3 · Cung &amp; Cầu</h3>
+        <p class="muted">Quyết định mức surge thêm vào khi cầu vượt cung.</p>
+
+        <div class="slider-block" data-var="demand_level">
+          <div class="slider-label"><span> Demand level (0-10)</span><span class="hint">low / medium / high / very_high</span></div>
+          <div class="slider-row">
+            <input id="demand_level" type="range" min="0" max="10" step="0.1" value="5">
+            <output id="demand_level-out">5.0</output>
+          </div>
+        </div>
+
+        <div class="slider-block" data-var="driver_availability">
+          <div class="slider-label"><span> Driver availability (xe)</span><span class="hint">scarce / few / normal / abundant</span></div>
+          <div class="slider-row">
+            <input id="driver_availability" type="range" min="0" max="50" step="0.5" value="25">
+            <output id="driver_availability-out">25 xe</output>
+          </div>
+        </div>
+
+        <div class="callout">
+          <b>Surge factor</b> được tính riêng từ Demand + Driver Availability, sau đó nhân với Base × Environment để ra hệ số tổng.
+        </div>
+      </div>
+
+      <!-- TAB 4: FUZZY CHARTS -->
+      <div class="tab-panel" data-panel="fuzzy">
+        <h3>Hàm thuộc &amp; mức kích hoạt</h3>
+        <p class="muted">Vạch trắng đứng = giá trị crisp đang nhập. Khu vực tô = độ thuộc μ(x).</p>
+        <div class="charts" id="charts-container"></div>
+      </div>
+
+      <!-- TAB 5: RULES -->
+      <div class="tab-panel" data-panel="rules">
+        <h3>Hệ luật phân cấp · 45 rules · 3 FIS</h3>
+
+        <div class="fis-block">
+          <div class="fis-head">
+            <span class="fis-tag">FIS-1</span>
+            <h4>Base Multiplier · 20 rules</h4>
+            <small>distance + estimated_time + time_of_day + day_type → base_multiplier [0.8 – 2.5]</small>
+          </div>
+          <ol class="rules">
+            <li><b>IF</b> distance=short <b>AND</b> est_time=fast <b>THEN</b> base=LOW</li>
+            <li><b>IF</b> distance=short <b>AND</b> est_time=normal <b>THEN</b> base=LOW</li>
+            <li><b>IF</b> distance=short <b>AND</b> est_time=slow <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> distance=medium <b>AND</b> est_time=fast <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> distance=medium <b>AND</b> est_time=normal <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> distance=medium <b>AND</b> est_time=slow <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> distance=medium <b>AND</b> est_time=very_slow <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> distance=long <b>AND</b> est_time=fast <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> distance=long <b>AND</b> est_time=slow <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> distance=long <b>AND</b> est_time=very_slow <b>THEN</b> base=VERY_HIGH</li>
+            <li><b>IF</b> distance=very_long <b>THEN</b> base=VERY_HIGH</li>
+            <li><b>IF</b> time=morning_rush <b>AND</b> day=weekday <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> time=evening_rush <b>AND</b> day=weekday <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> time=morning_rush <b>AND</b> day=weekend <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> time=evening_rush <b>AND</b> day=weekend <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> time=late_night <b>THEN</b> base=HIGH</li>
+            <li><b>IF</b> time=early_morning <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> day=holiday <b>THEN</b> base=VERY_HIGH</li>
+            <li><b>IF</b> time=noon <b>AND</b> day=weekday <b>THEN</b> base=NORMAL</li>
+            <li><b>IF</b> time=night <b>AND</b> day=weekend <b>THEN</b> base=NORMAL</li>
+          </ol>
+        </div>
+
+        <div class="fis-block">
+          <div class="fis-head">
+            <span class="fis-tag tag-2">FIS-2</span>
+            <h4>Environment Factor · 15 rules</h4>
+            <small>traffic + weather + temperature + air_quality → environment_factor [1.0 – 1.5]</small>
+          </div>
+          <ol class="rules">
+            <li><b>IF</b> traffic=smooth <b>AND</b> weather=sunny <b>AND</b> temp=comfortable <b>THEN</b> env=NONE</li>
+            <li><b>IF</b> traffic=smooth <b>AND</b> weather=cloudy <b>AND</b> aqi=good <b>THEN</b> env=NONE</li>
+            <li><b>IF</b> traffic=moderate <b>AND</b> weather=sunny <b>THEN</b> env=MILD</li>
+            <li><b>IF</b> traffic=heavy <b>AND</b> weather=sunny <b>THEN</b> env=MILD</li>
+            <li><b>IF</b> traffic=heavy <b>AND</b> weather=light_rain <b>THEN</b> env=STRONG</li>
+            <li><b>IF</b> traffic=jammed <b>AND</b> weather=sunny <b>THEN</b> env=STRONG</li>
+            <li><b>IF</b> traffic=jammed <b>AND</b> weather=heavy_rain <b>THEN</b> env=SEVERE</li>
+            <li><b>IF</b> traffic=jammed <b>AND</b> weather=storm <b>THEN</b> env=SEVERE</li>
+            <li><b>IF</b> weather=heavy_rain <b>THEN</b> env=STRONG</li>
+            <li><b>IF</b> weather=storm <b>THEN</b> env=SEVERE</li>
+            <li><b>IF</b> weather=light_rain <b>AND</b> traffic=moderate <b>THEN</b> env=MILD</li>
+            <li><b>IF</b> temp=very_hot <b>AND</b> aqi=unhealthy <b>THEN</b> env=STRONG</li>
+            <li><b>IF</b> temp=hot <b>AND</b> aqi=moderate <b>THEN</b> env=MILD</li>
+            <li><b>IF</b> aqi=hazardous <b>THEN</b> env=SEVERE</li>
+            <li><b>IF</b> temp=cool <b>AND</b> weather=sunny <b>THEN</b> env=NONE</li>
+          </ol>
+        </div>
+
+        <div class="fis-block">
+          <div class="fis-head">
+            <span class="fis-tag tag-3">FIS-3</span>
+            <h4>Surge Factor · 10 rules</h4>
+            <small>demand_level + driver_availability → surge_factor [1.0 – 2.0]</small>
+          </div>
+          <ol class="rules">
+            <li><b>IF</b> demand=low <b>AND</b> driver=abundant <b>THEN</b> surge=NONE</li>
+            <li><b>IF</b> demand=low <b>AND</b> driver=normal <b>THEN</b> surge=NONE</li>
+            <li><b>IF</b> demand=medium <b>AND</b> driver=normal <b>THEN</b> surge=MILD</li>
+            <li><b>IF</b> demand=medium <b>AND</b> driver=few <b>THEN</b> surge=MILD</li>
+            <li><b>IF</b> demand=medium <b>AND</b> driver=scarce <b>THEN</b> surge=HIGH</li>
+            <li><b>IF</b> demand=high <b>AND</b> driver=normal <b>THEN</b> surge=MILD</li>
+            <li><b>IF</b> demand=high <b>AND</b> driver=few <b>THEN</b> surge=HIGH</li>
+            <li><b>IF</b> demand=high <b>AND</b> driver=scarce <b>THEN</b> surge=VERY_HIGH</li>
+            <li><b>IF</b> demand=very_high <b>AND</b> driver=few <b>THEN</b> surge=VERY_HIGH</li>
+            <li><b>IF</b> demand=very_high <b>AND</b> driver=scarce <b>THEN</b> surge=VERY_HIGH</li>
+          </ol>
+        </div>
+
+        <div class="callout">
+          <b>Phương pháp:</b> Mamdani inference · <b>Defuzzification:</b> Centroid (trọng tâm) ·
+          <b>Tổng:</b> Total = Base × Environment × Surge
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: result + map -->
+    <aside class="panel result-panel">
+      <div id="map"></div>
+      <div class="result">
+        <div class="result-head">
+          <span class="tag">Ước tính cước</span>
+          <span class="surge-badge"><span id="r-total-num">×1.00</span> Total</span>
+        </div>
+        <h2 id="r-fare">0đ</h2>
+        <div class="bar"><div class="bar-fill" id="r-bar"></div></div>
+
+        <div class="multipliers">
+          <div class="mult mult-1"><small>FIS-1 · Base</small><b id="r-base-m">×1.00</b></div>
+          <div class="mult mult-2"><small>FIS-2 · Env</small><b id="r-env-m">×1.00</b></div>
+          <div class="mult mult-3"><small>FIS-3 · Surge</small><b id="r-surge-m">×1.00</b></div>
+        </div>
+
+        <div class="kv">
+          <div><span>Loại xe</span><b id="r-vehicle">—</b></div>
+          <div><span>Quãng đường</span><b id="r-distance">0 km</b></div>
+          <div><span>Cước mở cửa</span><b id="r-open">—</b></div>
+          <div><span>Đơn giá/km</span><b id="r-perkm">—</b></div>
+          <div><span>Cước cơ bản</span><b id="r-base">0đ</b></div>
+          <div><span>Total multiplier</span><b class="grad" id="r-total">×1.00</b></div>
+        </div>
+
+        <button id="book" class="btn btn-primary block">Đặt chuyến với mức giá này</button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- FUZZY OVERVIEW -->
+{% include '_footer.html' %}
+
+<script>
+// ===== Banner carousel — main + 2 mini side =====
+let _banners = [], _bannerIdx = 0, _bannerTimer = null;
+function renderBanners(banners){
+  // Tách: nếu ≥3 banner → 2 cuối làm mini side, còn lại carousel
+  let main, mini1, mini2;
+  if (banners.length >= 3){
+    main  = banners.slice(0, banners.length - 2);
+    mini1 = banners[banners.length - 2];
+    mini2 = banners[banners.length - 1];
+  } else if (banners.length === 2){
+    main = [banners[0]]; mini1 = banners[1]; mini2 = null;
+  } else if (banners.length === 1){
+    main = [banners[0]]; mini1 = null; mini2 = null;
+  } else {
+    main = [
+      {id:'_p1', url:null, link:'/app', _placeholder:true, _title:'Đặt xe thông minh, cước minh bạch', _sub:'Hierarchical Fuzzy Logic — 3 FIS, 45 luật'},
+      {id:'_p2', url:null, link:'/', _placeholder:true, _title:'Khám phá hệ Fuzzy 3 tầng', _sub:'10 biến đầu vào · điều chỉnh slider real-time'},
+    ];
+    mini1 = null; mini2 = null;
+  }
+  _banners = main;
+  // Mini side
+  const m1 = document.getElementById('banner-mini-1');
+  const m2 = document.getElementById('banner-mini-2');
+  if (mini1 && m1){m1.style.backgroundImage=`url('${mini1.url}')`;m1.classList.add('has-image');if(mini1.link)m1.href=mini1.link;}
+  if (mini2 && m2){m2.style.backgroundImage=`url('${mini2.url}')`;m2.classList.add('has-image');if(mini2.link)m2.href=mini2.link;}
+  const slidesEl = document.getElementById('banner-slides');
+  const dotsEl   = document.getElementById('banner-dots');
+  slidesEl.innerHTML = _banners.map(b => {
+    if (b._placeholder){
+      return `<a class="slide placeholder" href="${b.link||'#'}"><div><h2>${b._title}</h2><p>${b._sub}</p></div></a>`;
+    }
+    return `<a class="slide" href="${b.link||'#'}" style="background-image:url('${b.url}')" aria-label="${b.alt||''}"></a>`;
+  }).join('');
+  dotsEl.innerHTML = _banners.map((_,i)=>`<button onclick="bannerGo(${i})" class="${i===0?'on':''}" aria-label="Banner ${i+1}"></button>`).join('');
+  _bannerIdx = 0;
+  updateBannerTransform();
+  startBannerAuto();
+}
+function updateBannerTransform(){
+  document.getElementById('banner-slides').style.transform = `translateX(-${_bannerIdx*100}%)`;
+  document.querySelectorAll('#banner-dots button').forEach((d,i)=>d.classList.toggle('on', i===_bannerIdx));
+}
+function bannerGo(i){_bannerIdx = (i + _banners.length) % _banners.length; updateBannerTransform(); restartBannerAuto();}
+function bannerNext(){bannerGo(_bannerIdx + 1)}
+function bannerPrev(){bannerGo(_bannerIdx - 1)}
+function startBannerAuto(){
+  if(_bannerTimer) clearInterval(_bannerTimer);
+  if (_banners.length <= 1) return;
+  _bannerTimer = setInterval(bannerNext, 5000);
+}
+function restartBannerAuto(){startBannerAuto()}
+// Hover pause
+document.getElementById('banner-carousel').addEventListener('mouseenter', ()=>{if(_bannerTimer){clearInterval(_bannerTimer);_bannerTimer=null}});
+document.getElementById('banner-carousel').addEventListener('mouseleave', startBannerAuto);
+
+fetch('/api/branding').then(r=>r.json()).then(b=>renderBanners(b.banners||[]));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

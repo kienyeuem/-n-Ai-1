@@ -1,0 +1,17 @@
+[
+  {"id": "d01", "name": "Nguyễn Văn An",     "phone": "0901-234-567", "rating": 4.9, "trips": 1248, "vehicle_type": "bike", "plate": "59-X1 234.56", "model": "Honda Wave Alpha", "color": "Đỏ"},
+  {"id": "d02", "name": "Trần Minh Bình",    "phone": "0902-345-678", "rating": 4.8, "trips": 982,  "vehicle_type": "bike", "plate": "59-X2 345.67", "model": "Yamaha Sirius",   "color": "Xanh"},
+  {"id": "d03", "name": "Lê Quốc Cường",     "phone": "0903-456-789", "rating": 4.7, "trips": 654,  "vehicle_type": "bike", "plate": "59-X3 456.78", "model": "Honda Vision",   "color": "Trắng"},
+  {"id": "d04", "name": "Phạm Hữu Dũng",     "phone": "0904-567-890", "rating": 4.9, "trips": 2104, "vehicle_type": "bike", "plate": "59-X4 567.89", "model": "Honda Air Blade","color": "Đen"},
+  {"id": "d05", "name": "Hoàng Văn Em",      "phone": "0905-678-901", "rating": 4.6, "trips": 421,  "vehicle_type": "bike", "plate": "59-X5 678.90", "model": "Yamaha Exciter", "color": "Xám"},
+  {"id": "d06", "name": "Vũ Thanh Phong",    "phone": "0906-789-012", "rating": 4.95,"trips": 3210, "vehicle_type": "4s",   "plate": "51A-123.45",   "model": "Toyota Vios",     "color": "Bạc"},
+  {"id": "d07", "name": "Đặng Quốc Giang",   "phone": "0907-890-123", "rating": 4.8, "trips": 1876, "vehicle_type": "4s",   "plate": "51A-234.56",   "model": "Hyundai Accent",  "color": "Trắng"},
+  {"id": "d08", "name": "Bùi Văn Hùng",      "phone": "0908-901-234", "rating": 4.85,"trips": 1432, "vehicle_type": "4s",   "plate": "51B-345.67",   "model": "Mazda 3",         "color": "Đen"},
+  {"id": "d09", "name": "Đỗ Thị Lan",        "phone": "0909-012-345", "rating": 4.9, "trips": 2456, "vehicle_type": "4s",   "plate": "51C-456.78",   "model": "Kia Morning",     "color": "Đỏ"},
+  {"id": "d10", "name": "Ngô Minh Khôi",     "phone": "0910-123-456", "rating": 4.7, "trips": 876,  "vehicle_type": "4s",   "plate": "51D-567.89",   "model": "Honda City",      "color": "Xanh"},
+  {"id": "d11", "name": "Lý Thanh Long",     "phone": "0911-234-567", "rating": 4.92,"trips": 2890, "vehicle_type": "7s",   "plate": "51E-678.90",   "model": "Toyota Innova",   "color": "Bạc"},
+  {"id": "d12", "name": "Phan Quốc Mạnh",    "phone": "0912-345-678", "rating": 4.8, "trips": 1567, "vehicle_type": "7s",   "plate": "51F-789.01",   "model": "Mitsubishi Xpander","color": "Trắng"},
+  {"id": "d13", "name": "Hồ Hoàng Nam",      "phone": "0913-456-789", "rating": 4.88,"trips": 2103, "vehicle_type": "7s",   "plate": "51G-890.12",   "model": "Toyota Fortuner", "color": "Đen"},
+  {"id": "d14", "name": "Trương Văn Phúc",   "phone": "0914-567-890", "rating": 4.75,"trips": 1289, "vehicle_type": "7s",   "plate": "51H-901.23",   "model": "Suzuki XL7",      "color": "Xám"},
+  {"id": "d15", "name": "Mai Quang Quý",     "phone": "0915-678-901", "rating": 4.95,"trips": 3120, "vehicle_type": "7s",   "plate": "51K-012.34",   "model": "Hyundai Custin",  "color": "Đỏ"}
+]

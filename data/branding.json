@@ -1,0 +1,112 @@
+{
+  "site_name": "FuzzyRide",
+  "tagline": "",
+  "logo_url": "/static/branding/logo.png",
+  "banners": [
+    {
+      "id": "a2e702d7",
+      "url": "/static/branding/banner_a2e702d7.jpg",
+      "link": "",
+      "alt": ""
+    },
+    {
+      "id": "74b3aa41",
+      "url": "/static/branding/banner_74b3aa41.jpg",
+      "link": "",
+      "alt": ""
+    },
+    {
+      "id": "dad7b666",
+      "url": "/static/branding/banner_dad7b666.jpg",
+      "link": "",
+      "alt": ""
+    },
+    {
+      "id": "eec61492",
+      "url": "/static/branding/banner_eec61492.jpg",
+      "link": "",
+      "alt": ""
+    },
+    {
+      "id": "c0c94487",
+      "url": "/static/branding/banner_c0c94487.jpg",
+      "link": "",
+      "alt": ""
+    },
+    {
+      "id": "78a663fc",
+      "url": "/static/branding/banner_78a663fc.jpg",
+      "link": "",
+      "alt": ""
+    }
+  ],
+  "footer": {
+    "copyright": "© 2026 FuzzyRide. Đồ án Hierarchical Fuzzy Logic.",
+    "sections": [
+      {
+        "title": "Dịch vụ khách hàng",
+        "links": [
+          {
+            "text": "Trung tâm trợ giúp",
+            "url": "#"
+          },
+          {
+            "text": "Hướng dẫn đặt chuyến",
+            "url": "#"
+          },
+          {
+            "text": "Liên hệ",
+            "url": "#"
+          },
+          {
+            "text": "Chính sách bảo hành",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Về FuzzyRide",
+        "links": [
+          {
+            "text": "Giới thiệu",
+            "url": "#"
+          },
+          {
+            "text": "Báo cáo Fuzzy Logic",
+            "url": "/"
+          },
+          {
+            "text": "Bảng mockup",
+            "url": "/mockup"
+          },
+          {
+            "text": "Điều khoản",
+            "url": "#"
+          },
+          {
+            "text": "Chính sách bảo mật",
+            "url": "#"
+          }
+        ]
+      },
+      {
+        "title": "Theo dõi",
+        "links": [
+          {
+            "text": "Facebook",
+            "url": "#"
+          },
+          {
+            "text": "Instagram",
+            "url": "#"
+          },
+          {
+            "text": "LinkedIn",
+            "url": "#"
+          }
+        ]
+      }
+    ]
+  },
+  "updated_at": "2026-05-02T05:16:18"
+}

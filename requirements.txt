@@ -1,0 +1,8 @@
+Flask
+numpy
+scikit-fuzzy
+scipy
+networkx
+packaging
+Pillow
+google-auth

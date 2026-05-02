@@ -1,0 +1,81 @@
+[
+  {
+    "id": "842eef6b529b",
+    "username": "demo",
+    "email": "demo@fuzzyride.local",
+    "phone": "0900-000-000",
+    "fullname": "Người dùng Demo",
+    "password": "pbkdf2_sha256$90ced5feb9e6935962470f6d42488231$3b9fd6a8d06dea72f250a525358527a95df5f53d595c0d5be4376f20a3f72e87",
+    "role": "user",
+    "locked": false,
+    "created_at": "2026-04-29T15:30:42"
+  },
+  {
+    "id": "bc0300974f8b",
+    "username": "admin",
+    "email": "tkien20012006@gmail.com",
+    "phone": "0869233973",
+    "fullname": "Trần Trung Kiên",
+    "password": "pbkdf2_sha256$d89d8ff57cb41d8456774ee1e192c7f1$93304f1268ff7e751d2fe13ee203afaefac4808073666b90f8a32e19dd88286d",
+    "role": "admin",
+    "locked": false,
+    "created_at": "2026-04-29T15:30:42"
+  },
+  {
+    "id": "2cf4a993a7b2",
+    "username": "kientran",
+    "email": "trantrungkien20012006@gmail.com",
+    "phone": "",
+    "fullname": "kientran",
+    "password": "pbkdf2_sha256$d0e352fe8fb0f3c2cd87a6f50f3a2ee1$a3a4a3542eca182f46cac5f3457026d60c7989d86f26e65987854540a01f8c78",
+    "role": "user",
+    "locked": false,
+    "created_at": "2026-04-29T19:24:54",
+    "google_sub": "102928892057116293253"
+  },
+  {
+    "id": "5b2b4c0d2ffe",
+    "username": "kientran3124102826",
+    "email": "kientran.31241028263@st.ueh.edu.vn",
+    "phone": "",
+    "fullname": "KIÊN TRẦN TRUNG",
+    "password": "pbkdf2_sha256$2a9cd70216c9310e6e138ed63f3fba05$ed5968acf136788f0f8e57bf49151de1d6118421daf2004eb4ebfc5355d490a2",
+    "role": "user",
+    "locked": false,
+    "google_sub": "113017748144211125424",
+    "created_at": "2026-04-29T22:20:32"
+  },
+  {
+    "id": "561f8e61854a",
+    "username": "kienas",
+    "email": "fe@gmail.com",
+    "phone": "0869233973",
+    "fullname": "Trần Trung Kiên",
+    "password": "pbkdf2_sha256$64bd40732fd9e7a9409d3eb0c3fee303$13825fd1b2f50bd546390cf30e3247fd0b6c743915a32bef671fb9be83698b31",
+    "role": "user",
+    "locked": false,
+    "created_at": "2026-05-01T00:55:21"
+  },
+  {
+    "id": "e29951213c26",
+    "username": "tienwas",
+    "email": "an@gmail.com",
+    "phone": "0869233973",
+    "fullname": "Trần Thắng",
+    "password": "pbkdf2_sha256$9e2011bcdb35776fff1e7a81bc5b5c5c$31c11231439ac0b4ae83618fb5bbada30738a780d9da831353b525ec36967de3",
+    "role": "user",
+    "locked": false,
+    "created_at": "2026-05-01T00:56:00"
+  },
+  {
+    "id": "50292d665bac",
+    "username": "nam",
+    "email": "dasd@gmail.com",
+    "phone": "0869233973",
+    "fullname": "Trần Trung Kiên",
+    "password": "pbkdf2_sha256$54c51f242af2ab8778a0d4ffdfaf5390$00eb542c23414bdc1feb915051c510447ddc47927be31c6db581262a434e8a85",
+    "role": "user",
+    "locked": false,
+    "created_at": "2026-05-01T01:01:21"
+  }
+]

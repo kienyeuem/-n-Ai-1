@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Hồ sơ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div id="side-backdrop" class="side-backdrop" onclick="closeSide()"></div>
+
+<div class="app-shell">
+
+  <aside class="side-nav" id="side">
+    <div class="brand">
+      <div class="logo" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</div>
+      <div>
+        <div class="title brand-anim">{{ branding.site_name or 'FuzzyRide' }}</div>
+        <div class="sub">Hierarchical FIS</div>
+      </div>
+    </div>
+    <a class="nav-i" href="/app">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Trang chủ
+    </a>
+    <a class="nav-i" href="/history">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      Lịch sử chuyến
+    </a>
+    <a class="nav-i on" href="/profile">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Hồ sơ cá nhân
+    </a>
+    <a class="nav-i" href="/">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Calculator + Báo cáo
+    </a>
+    {% if current_user.role == 'admin' %}
+    <a class="nav-i" href="/admin">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Trang quản trị
+    </a>
+    {% endif %}
+    <div class="spacer"></div>
+    <div class="me">
+      <div class="av" id="side-av" {% if current_user.avatar_url %}style="background-image:url('{{ current_user.avatar_url }}')"{% endif %}>
+        {% if not current_user.avatar_url %}{{ current_user.avatar }}{% endif %}
+      </div>
+      <div class="info">
+        <b>{{ current_user.fullname or current_user.username }}</b>
+        <small>@{{ current_user.username }}</small>
+      </div>
+      <button class="out" onclick="logout()" title="Đăng xuất">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <div class="top-bar">
+      <button class="menu-btn" onclick="toggleSide()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="page-title">Hồ sơ cá nhân</h1>
+      <div class="top-actions">
+        <button onclick="logout()">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Đăng xuất
+        </button>
+      </div>
+    </div>
+
+    <main class="app-content">
+      <div class="profile-grid">
+
+        <div class="card elev">
+          <div class="prof-head">
+            <div class="prof-av-wrap">
+              <div class="avatar lg" id="main-av" {% if current_user.avatar_url %}style="background-image:url('{{ current_user.avatar_url }}')"{% endif %}>
+                {% if not current_user.avatar_url %}{{ current_user.avatar }}{% endif %}
+              </div>
+              <button class="av-edit" onclick="openAvatarPicker()" title="Đổi ảnh đại diện">
+                <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </button>
+              <input type="file" id="av-file" accept="image/*" hidden />
+            </div>
+            <h3 id="prof-name">{{ current_user.fullname or current_user.username }}</h3>
+            <div class="em" id="prof-email">{{ current_user.email }}</div>
+            <div class="badges">
+              <span class="chip">Thành viên</span>
+              {% if current_user.role == 'admin' %}<span class="chip warn">Admin</span>{% endif %}
+            </div>
+          </div>
+
+          <div class="prof-stats">
+            <div class="x"><b id="ps-count">—</b><small>Chuyến</small></div>
+            <div class="x"><b id="ps-km">—</b><small>Km TB</small></div>
+            <div class="x"><b id="ps-spent">—</b><small>Đã chi</small></div>
+          </div>
+
+          <div class="section-title">Thông tin tài khoản</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--line)">
+              <span class="muted">Username</span><b>@{{ current_user.username }}</b>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--line)">
+              <span class="muted">Email</span><b id="info-email">{{ current_user.email or '—' }}</b>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0;border-bottom:1px solid var(--line)">
+              <span class="muted">SĐT</span><b id="info-phone">{{ current_user.phone or '—' }}</b>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:9px 0">
+              <span class="muted">Tham gia</span><b>{{ (current_user.created_at or '')[:10] }}</b>
+            </div>
+          </div>
+
+          <button class="btn btn-outline block" style="margin-top:14px" onclick="openEditProfile()">
+            <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Chỉnh sửa thông tin
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Tác vụ</div>
+          <div class="prof-list">
+            <a class="it" href="/app">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+              <div class="nm">Đặt chuyến mới
+                <span class="desc">Bắt đầu hành trình tiếp theo</span>
+              </div>
+              <div class="ar">›</div>
+            </a>
+            <a class="it" href="/history">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg></div>
+              <div class="nm">Lịch sử chuyến
+                <span class="desc">Xem toàn bộ booking & đánh giá</span>
+              </div>
+              <div class="ar">›</div>
+            </a>
+            <a class="it" href="/">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+              <div class="nm">Calculator + Báo cáo Fuzzy
+                <span class="desc">Trang học thuật với 4 tab phân tích</span>
+              </div>
+              <div class="ar">›</div>
+            </a>
+            <a class="it" href="/mockup">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+              <div class="nm">Bảng Figma 12 màn
+                <span class="desc">Mockup gốc của thiết kế</span>
+              </div>
+              <div class="ar">›</div>
+            </a>
+            {% if current_user.role == 'admin' %}
+            <a class="it" href="/admin">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+              <div class="nm">Trang quản trị
+                <span class="desc">Stats, users, bookings, fuzzy params</span>
+              </div>
+              <div class="ar">›</div>
+            </a>
+            {% endif %}
+            <button class="it danger-row" style="background:0;border:0;width:100%;text-align:left;cursor:pointer" onclick="logout()">
+              <div class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+              <div class="nm">Đăng xuất
+                <span class="desc">Kết thúc phiên hiện tại</span>
+              </div>
+              <div class="ar">›</div>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Avatar picker modal -->
+<div id="av-modal" class="modal-bg" onclick="if(event.target===this)closeAvatarPicker()">
+  <div class="modal">
+    <h3>Đổi ảnh đại diện</h3>
+    <p>Chọn ảnh từ máy. Hệ thống sẽ tự crop vuông &amp; resize 256×256.</p>
+    <div class="preview" id="av-preview" {% if current_user.avatar_url %}style="background-image:url('{{ current_user.avatar_url }}')"{% endif %}></div>
+    <button class="btn btn-outline block" onclick="document.getElementById('av-file').click()">
+      <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Chọn ảnh từ máy
+    </button>
+    <div class="actions">
+      {% if current_user.avatar_url %}
+      <button class="btn btn-danger" onclick="deleteAvatar()">Xoá ảnh</button>
+      {% endif %}
+      <button class="btn btn-ghost" onclick="closeAvatarPicker()">Đóng</button>
+      <button class="btn btn-primary" id="av-save" onclick="uploadAvatar()" disabled>Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit profile modal -->
+<div id="ep-modal" class="modal-bg" onclick="if(event.target===this)closeEditProfile()">
+  <div class="modal">
+    <h3>Chỉnh sửa thông tin</h3>
+    <p>Cập nhật họ tên, email và số điện thoại.</p>
+    <div id="ep-err" class="auth-card-err" style="display:none;background:var(--danger-50);border:1px solid #FCD9D6;color:var(--danger);padding:10px 14px;font-size:13px;margin-bottom:14px"></div>
+    <div class="field"><label>Họ và tên</label><input id="ep-fullname" /></div>
+    <div class="field"><label>Email</label><input id="ep-email" type="email" /></div>
+    <div class="field"><label>Số điện thoại</label><input id="ep-phone" /></div>
+    <div class="actions">
+      <button class="btn btn-ghost" onclick="closeEditProfile()">Huỷ</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-tabs">
+  <a href="/app">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Trang chủ</a>
+  <a href="/history">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+    Lịch sử</a>
+  <a href="/profile" class="on">
+    <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2z"/></svg>
+    Hồ sơ</a>
+  <a href="/">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Fuzzy</a>
+</nav>
+
+{% include '_footer.html' %}
+
+<script>
+function fmt(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
+function $(id){return document.getElementById(id);}
+const tt=$('toast');function toast(m,e){tt.textContent=m;tt.classList.toggle('error',!!e);tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2200);}
+function toggleSide(){$('side').classList.toggle('open');$('side-backdrop').classList.toggle('show');}
+function closeSide(){$('side').classList.remove('open');$('side-backdrop').classList.remove('show');}
+
+async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
+async function load(){
+  const s=await fetch('/api/stats').then(r=>r.json());
+  $('ps-count').textContent=s.count||0;
+  $('ps-km').textContent=(s.avg_distance||0)+' km';
+  $('ps-spent').textContent=fmt(s.total||0);
+}
+load();
+
+// ============ Avatar upload ============
+let pickedFile=null;
+function openAvatarPicker(){$('av-modal').classList.add('show');}
+function closeAvatarPicker(){
+  $('av-modal').classList.remove('show');
+  pickedFile=null;$('av-save').disabled=true;
+  // reset preview to current avatar
+  const cur = '{{ current_user.avatar_url or "" }}';
+  $('av-preview').style.backgroundImage = cur ? `url('${cur}')` : '';
+}
+$('av-file').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(f.size > 5*1024*1024){toast('File quá lớn (>5MB)',true);return;}
+  pickedFile=f;
+  const url=URL.createObjectURL(f);
+  $('av-preview').style.backgroundImage=`url('${url}')`;
+  $('av-save').disabled=false;
+});
+async function uploadAvatar(){
+  if(!pickedFile)return;
+  const fd=new FormData(); fd.append('avatar',pickedFile);
+  $('av-save').disabled=true; $('av-save').textContent='Đang tải…';
+  const r=await fetch('/api/auth/avatar',{method:'POST',body:fd});
+  const d=await r.json();
+  if(!r.ok){toast(d.error||'Lỗi tải lên',true); $('av-save').disabled=false; $('av-save').textContent='Lưu'; return;}
+  toast('Đã cập nhật ảnh đại diện');
+  // refresh ảnh đang hiển thị
+  setTimeout(()=>location.reload(), 600);
+}
+async function deleteAvatar(){
+  if(!confirm('Xoá ảnh đại diện?')) return;
+  await fetch('/api/auth/avatar',{method:'DELETE'});
+  toast('Đã xoá ảnh');
+  setTimeout(()=>location.reload(), 600);
+}
+
+// ============ Edit profile ============
+function openEditProfile(){
+  $('ep-fullname').value = '{{ (current_user.fullname or "") | replace("'", "\\'") }}';
+  $('ep-email').value    = '{{ (current_user.email or "") | replace("'", "\\'") }}';
+  $('ep-phone').value    = '{{ (current_user.phone or "") | replace("'", "\\'") }}';
+  $('ep-err').style.display='none';
+  $('ep-modal').classList.add('show');
+}
+function closeEditProfile(){$('ep-modal').classList.remove('show');}
+
+async function saveProfile(){
+  const r=await fetch('/api/auth/profile',{method:'PATCH',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      fullname:$('ep-fullname').value.trim(),
+      email:$('ep-email').value.trim(),
+      phone:$('ep-phone').value.trim()
+    })});
+  const d=await r.json();
+  if(!r.ok){
+    $('ep-err').textContent = d.error || 'Lỗi cập nhật';
+    $('ep-err').style.display='block';
+    return;
+  }
+  toast('Đã lưu thay đổi');
+  setTimeout(()=>location.reload(),600);
+}
+</script>
+</body>
+</html>

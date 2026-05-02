@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Lịch sử chuyến</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div id="side-backdrop" class="side-backdrop" onclick="closeSide()"></div>
+
+<div class="app-shell">
+
+  <aside class="side-nav" id="side">
+    <div class="brand">
+      <div class="logo" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</div>
+      <div>
+        <div class="title brand-anim">{{ branding.site_name or 'FuzzyRide' }}</div>
+        <div class="sub">Hierarchical FIS</div>
+      </div>
+    </div>
+    <a class="nav-i" href="/app">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Trang chủ
+    </a>
+    <a class="nav-i on" href="/history">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+      Lịch sử chuyến
+    </a>
+    <a class="nav-i" href="/profile">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Hồ sơ cá nhân
+    </a>
+    <a class="nav-i" href="/">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Calculator + Báo cáo
+    </a>
+    {% if current_user.role == 'admin' %}
+    <a class="nav-i" href="/admin">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Trang quản trị
+    </a>
+    {% endif %}
+    <div class="spacer"></div>
+    <div class="me">
+      <div class="av" {% if current_user.avatar_url %}style="background-image:url('{{ current_user.avatar_url }}')"{% endif %}>
+        {% if not current_user.avatar_url %}{{ current_user.avatar }}{% endif %}
+      </div>
+      <div class="info">
+        <b>{{ current_user.fullname or current_user.username }}</b>
+        <small>@{{ current_user.username }}</small>
+      </div>
+      <button class="out" onclick="logout()" title="Đăng xuất">
+        <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <div class="top-bar">
+      <button class="menu-btn" onclick="toggleSide()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 class="page-title">Lịch sử chuyến</h1>
+      <div class="top-actions">
+        <a class="pri" href="/app">
+          <svg class="ic ic-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Đặt chuyến
+        </a>
+      </div>
+    </div>
+
+    <main class="app-content">
+      <div class="stat-row">
+        <div class="s"><small>Tổng chuyến</small><b id="st-count">0</b></div>
+        <div class="s"><small>Đã chi</small><b id="st-total">0đ</b></div>
+        <div class="s"><small>Surge TB</small><b id="st-surge">×1.0</b></div>
+        <div class="s"><small>Quãng đường TB</small><b id="st-km">— km</b></div>
+      </div>
+
+      <div class="hist-filt" id="filters">
+        <button class="on" data-f="all">Tất cả</button>
+        <button data-f="completed">Hoàn tất</button>
+        <button data-f="in_trip">Đang đi</button>
+        <button data-f="searching">Đang tìm</button>
+        <button data-f="driver_assigned">Đã có TX</button>
+        <button data-f="cancelled">Đã huỷ</button>
+      </div>
+
+      <div class="h-grid" id="list"></div>
+    </main>
+  </div>
+</div>
+
+{% include '_footer.html' %}
+
+<nav class="bottom-tabs">
+  <a href="/app">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Trang chủ</a>
+  <a href="/history" class="on">
+    <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10c0-.55-.45-1-1-1s-1 .45-1 1a8 8 0 1 1-2.34-5.66L15 9h6V3l-2.34 2.34A10 10 0 0 0 12 2zm-1 5v6l5 3 .9-1.5L13 12V7h-2z"/></svg>
+    Lịch sử</a>
+  <a href="/profile">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Hồ sơ</a>
+  <a href="/">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Fuzzy</a>
+</nav>
+
+<script>
+const SVG_BIKE = '<svg class="ic ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M5.5 17.5 9 8h6l3 4"/></svg>';
+const SVG_CAR  = '<svg class="ic ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>';
+const SVG_VAN  = '<svg class="ic ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h2a2 2 0 0 1 2 2v11h2v3h-3v-3H5v3H2v-3h2V5a2 2 0 0 1 2-2h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="16.5" cy="17.5" r="2"/></svg>';
+const ICONS = { 'bike':SVG_BIKE, '4s':SVG_CAR, '7s':SVG_VAN };
+const STATUS_LABEL = {
+  'searching':'Đang tìm tài xế','driver_assigned':'Đã có tài xế','in_trip':'Đang di chuyển',
+  'completed':'Hoàn tất','confirmed':'Hoàn tất','cancelled':'Đã huỷ'
+};
+function fmt(n){return Math.round(n).toLocaleString('vi-VN')+'đ';}
+function $(id){return document.getElementById(id);}
+const tt=$('toast');function toast(m){tt.textContent=m;tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2000);}
+function toggleSide(){$('side').classList.toggle('open');$('side-backdrop').classList.toggle('show');}
+function closeSide(){$('side').classList.remove('open');$('side-backdrop').classList.remove('show');}
+async function logout(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';}
+
+let allItems=[], filter='all';
+async function load(){
+  const [b,s] = await Promise.all([
+    fetch('/api/bookings').then(r=>r.json()),
+    fetch('/api/stats').then(r=>r.json())
+  ]);
+  allItems = b;
+  $('st-count').textContent = s.count||0;
+  $('st-total').textContent = fmt(s.total||0);
+  $('st-surge').textContent = '×'+(s.avg_surge||1.0);
+  $('st-km').textContent    = (s.avg_distance||0) + ' km';
+  render();
+}
+function render(){
+  const list = $('list');
+  const items = (filter==='all') ? allItems : allItems.filter(b=>(b.status||'completed')===filter);
+  if(!items.length){
+    list.innerHTML = `<div class="h-empty">
+      <div style="margin-bottom:10px;color:var(--primary)">
+        <svg class="ic ic-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M5.5 17.5 9 8h6l3 4"/></svg>
+      </div>
+      Chưa có chuyến nào trong nhóm này.<br>
+      <a href="/app">Đặt chuyến đầu tiên</a> nhé!
+    </div>`;
+    return;
+  }
+  list.innerHTML = items.map(b=>{
+    const dt = (b.created_at||'').replace('T',' ').slice(0,16);
+    const km = b.inputs?.distance ?? '-';
+    return `
+      <div class="h-card">
+        <div class="h-top">
+          <div class="h-icon">${ICONS[b.vehicle]||SVG_BIKE}</div>
+          <div class="h-route">
+            <b>${b.from_text||'Điểm đi'}</b><br>
+            ↓ <b>${b.to_text||'Điểm đến'}</b>
+          </div>
+          <div class="h-fare">${fmt(b.final_fare)}</div>
+        </div>
+        <div class="h-meta">
+          <span>${dt}</span>
+          <span>${km} km</span>
+          <span>${b.vehicle_name||'?'}</span>
+          <span>×${b.total_multiplier||1.0}</span>
+          <span class="chip ${statusChip(b.status)}">${STATUS_LABEL[b.status||'completed']||b.status}</span>
+          ${b.rating?'<span>'+'★'.repeat(b.rating)+'</span>':''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+function statusChip(s){
+  return ({searching:'gray',driver_assigned:'',in_trip:'warn',completed:'',confirmed:'',cancelled:'danger'}[s]||'gray');
+}
+document.querySelectorAll('#filters button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#filters button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); filter=b.dataset.f; render();
+  });
+});
+load();
+</script>
+</body>
+</html>

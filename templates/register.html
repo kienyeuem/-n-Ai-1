@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>FuzzyRide — Đăng ký</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+<style>
+  body{background:var(--bg)}
+  .login-stage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px 18px}
+  .login-form{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);padding:32px}
+  .login-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  .login-brand .logo{width:36px;height:36px;background:var(--primary);color:#fff;
+    display:grid;place-items:center;font-family:'Space Grotesk';font-weight:800;font-size:18px}
+  .login-brand b{font-family:'Space Grotesk';font-size:18px}
+  .login-form h1{font-size:24px;font-weight:600;margin-bottom:6px}
+  .login-form .sub{font-size:14px;color:var(--muted);margin-bottom:22px}
+  .login-form .err{background:var(--danger-50);border:1px solid #FCD9D6;color:var(--danger);
+    padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
+  .login-form .err.show{display:block}
+  .input-row{position:relative;margin-bottom:12px}
+  .input-row input{width:100%;background:var(--surface);border:1px solid var(--line);
+    padding:13px 16px;font-size:14px;color:var(--text);outline:0;font-family:inherit;transition:.12s}
+  .input-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,177,79,.15)}
+  .input-row.with-icon input{padding-right:46px}
+  .eye-btn{position:absolute;right:0;top:0;height:100%;width:46px;background:transparent;
+    border:0;display:grid;place-items:center;cursor:pointer;color:var(--muted)}
+  .btn-cta{width:100%;background:var(--primary);color:#fff;border:0;cursor:pointer;
+    padding:14px;font-size:14px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;font-family:inherit;transition:.12s;margin-top:6px}
+  .btn-cta:hover{background:var(--primary-700)}
+  .or-divider{display:flex;align-items:center;gap:12px;color:var(--subtle);
+    font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:22px 0 14px}
+  .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--line)}
+  .social-btns{display:flex;gap:10px}
+  .social-btns .btn-soc{flex:1;background:var(--surface);border:1px solid var(--line);
+    padding:11px 14px;font-size:13.5px;font-weight:500;font-family:inherit;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--text);transition:.12s}
+  .social-btns .btn-soc:hover{border-color:var(--text);background:var(--surface-2)}
+  .social-btns .btn-soc.fb{color:#1877F2}
+  .social-btns .btn-soc.fb:hover{border-color:#1877F2}
+  .social-btns .btn-soc .ic-soc{width:18px;height:18px}
+  .login-form .switch{margin-top:24px;text-align:center;color:var(--muted);font-size:13px;
+    padding-top:16px;border-top:1px solid var(--line)}
+  .login-form .switch a{color:var(--primary-700);font-weight:600}
+  @media (max-width:480px){
+    .login-form{padding:24px 20px}
+    .social-btns{flex-direction:column}
+  }
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div class="login-stage">
+  <form class="login-form" id="f">
+    <div class="login-brand">
+      <div class="logo" {% if branding.logo_url %}style="background-image:url('{{ branding.logo_url }}');background-color:transparent;background-size:cover;background-position:center"{% endif %}>{% if not branding.logo_url %}{{ (branding.site_name or 'F')[0]|upper }}{% endif %}</div>
+      <b>{{ branding.site_name or 'FuzzyRide' }}</b>
+    </div>
+    <h1>Đăng ký tài khoản</h1>
+    <p class="sub">Bắt đầu chuyến đi đầu tiên với FuzzyRide.</p>
+    <div id="err" class="err"></div>
+
+    <div class="input-row"><input id="fullname" placeholder="Họ và tên" /></div>
+    <div class="input-row"><input id="username" placeholder="Tên đăng nhập (3–20 ký tự)" required pattern="[a-z0-9_]{3,20}" /></div>
+    <div class="input-row"><input id="email" type="email" placeholder="Email" required /></div>
+    <div class="input-row"><input id="phone" placeholder="Số điện thoại" /></div>
+    <div class="input-row with-icon">
+      <input id="password" type="password" placeholder="Mật khẩu (≥ 6 ký tự)" required minlength="6" />
+      <button type="button" class="eye-btn" id="eye">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <button type="submit" class="btn-cta">Tạo tài khoản</button>
+
+    <div class="or-divider">Hoặc đăng ký với</div>
+    <div class="social-btns">
+      <button type="button" class="btn-soc fb" id="btn-fb">
+        <svg class="ic-soc" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07z"/></svg>
+        Facebook
+      </button>
+      <button type="button" class="btn-soc google" id="btn-google">
+        <svg class="ic-soc" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20.4H24v7.2h11.3c-1.6 4.5-5.9 7.7-11.3 7.7-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.1-5.1C33.6 6.1 29 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 5.9 4.3C13.8 15.1 18.5 12 24 12c3.1 0 5.9 1.2 8 3.1l5.1-5.1C33.6 6.1 29 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c4.9 0 9.4-1.9 12.7-4.9l-5.9-5C28.9 35.6 26.6 36.5 24 36.5c-5.4 0-9.6-3.2-11.2-7.7l-5.8 4.5C10.4 39.6 16.7 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20.4H24v7.2h11.3c-.8 2.2-2.2 4.1-4.1 5.5l5.9 5C40.9 35.7 44 30.3 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Google
+      </button>
+    </div>
+
+    <div class="switch">Đã có tài khoản? <a href="/login">Đăng nhập</a></div>
+  </form>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+const tt=document.getElementById('toast');
+function toast(m,err){tt.textContent=m;tt.classList.toggle('error',!!err);tt.classList.add('show');setTimeout(()=>tt.classList.remove('show'),2800);}
+
+const pwd=document.getElementById('password'), eye=document.getElementById('eye');
+const eyeOff='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-10-8-10-8a18.86 18.86 0 0 1 5.06-6.06"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 10 8 10 8a18.74 18.74 0 0 1-2.16 3.19"/><path d="m1 1 22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
+const eyeOpen='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+eye.addEventListener('click',()=>{
+  const isPwd=pwd.type==='password';
+  pwd.type=isPwd?'text':'password';
+  eye.innerHTML=isPwd?eyeOff:eyeOpen;
+});
+
+const errEl=document.getElementById('err');
+document.getElementById('f').addEventListener('submit', async e=>{
+  e.preventDefault(); errEl.classList.remove('show');
+  const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({fullname:fullname.value.trim(),username:username.value.trim(),
+      email:email.value.trim(),phone:phone.value.trim(),password:pwd.value})});
+  const d=await r.json();
+  if(!r.ok){errEl.textContent=d.error||'Lỗi đăng ký';errEl.classList.add('show');return;}
+  toast('Tạo tài khoản thành công!');
+  setTimeout(()=>location.href='/app',600);
+});
+
+// ============ OAuth ============
+let OAUTH_CFG = { google_client_id:'', facebook_app_id:'', google_configured:false, facebook_configured:false };
+fetch('/api/auth/oauth/config').then(r=>r.json()).then(d=>{
+  OAUTH_CFG = d; initGoogle(); initFacebook();
+});
+function initGoogle(){
+  if (!OAUTH_CFG.google_configured) return;
+  const tryInit = () => {
+    if (!window.google || !google.accounts || !google.accounts.id) return setTimeout(tryInit, 300);
+    google.accounts.id.initialize({
+      client_id: OAUTH_CFG.google_client_id, callback: onGoogleCredential, auto_select:false, ux_mode:'popup'
+    });
+  };
+  tryInit();
+}
+async function onGoogleCredential(resp){
+  if (!resp || !resp.credential){toast('Google: không nhận được token', true); return;}
+  const r = await fetch('/api/auth/oauth/google',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({credential: resp.credential})});
+  const d = await r.json();
+  if (!r.ok){toast(d.error || 'Lỗi Google', true); return;}
+  toast('Đăng nhập Google thành công');
+  setTimeout(()=>location.href='/app', 500);
+}
+document.getElementById('btn-google').addEventListener('click', ()=>{
+  if (!OAUTH_CFG.google_configured){toast('Chưa cấu hình GOOGLE_CLIENT_ID. Xem .env.example', true);return;}
+  if (!window.google || !google.accounts){toast('Đang tải Google SDK…',true);return;}
+  google.accounts.id.prompt((notification)=>{
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()){
+      const wrap=document.createElement('div');
+      wrap.style.position='fixed';wrap.style.opacity='0';wrap.style.pointerEvents='none';
+      document.body.appendChild(wrap);
+      google.accounts.id.renderButton(wrap,{type:'standard',theme:'outline',size:'large'});
+      setTimeout(()=>{const b=wrap.querySelector('[role=button]'); if(b)b.click(); setTimeout(()=>wrap.remove(),5000);},100);
+    }
+  });
+});
+function initFacebook(){
+  if (!OAUTH_CFG.facebook_configured) return;
+  window.fbAsyncInit = function(){ FB.init({appId:OAUTH_CFG.facebook_app_id, cookie:true, xfbml:false, version:'v18.0'});};
+  (function(d, s, id){
+    if (d.getElementById(id)) return;
+    var fjs = d.getElementsByTagName(s)[0];
+    var js = d.createElement(s); js.id = id;
+    js.src = "https://connect.facebook.net/vi_VN/sdk.js";
+    fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+}
+document.getElementById('btn-fb').addEventListener('click', ()=>{
+  if (!OAUTH_CFG.facebook_configured){toast('Chưa cấu hình FACEBOOK_APP_ID. Xem .env.example', true);return;}
+  if (!window.FB){toast('Đang tải Facebook SDK…',true);return;}
+  FB.login(async (resp)=>{
+    if (resp.status !== 'connected'){toast('Bạn đã huỷ đăng nhập Facebook',true);return;}
+    const r = await fetch('/api/auth/oauth/facebook',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({access_token: resp.authResponse.accessToken})});
+    const d = await r.json();
+    if (!r.ok){toast(d.error || 'Lỗi Facebook', true); return;}
+    toast('Đăng nhập Facebook thành công');
+    setTimeout(()=>location.href='/app', 500);
+  }, {scope:'public_profile,email'});
+});
+</script>
+</body>
+</html>
